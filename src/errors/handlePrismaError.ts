@@ -1,5 +1,6 @@
 import { Prisma } from '../../generated/prisma/client';
-import { TErrorSources, TGenericErrorResponse } from '../interface/error';
+import { TErrorSources, TGenericErrorResponse } from '../interface/error.interface';
+// import { TErrorSources, TGenericErrorResponse } from '../interface/error';
 
 /**
  * Handles Prisma Client Known Request Errors

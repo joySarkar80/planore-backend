@@ -8,7 +8,8 @@ import AppError from '../errors/AppError';
 import handlePrismaError from '../errors/handlePrismaError';
 import handlePrismaValidationError from '../errors/handlePrismaValidationError';
 import handleZodError from '../errors/handleZodError';
-import { TErrorSources } from '../interface/error';
+// import { TErrorSources } from '../interface/error';
+import { TErrorSources } from '../interface/error.interface';
 
 const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
     // Setting default values
