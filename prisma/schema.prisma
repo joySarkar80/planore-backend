@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id       String     @id @default(uuid())
+  name     String
+  email    String     @unique
+  password String
+  role     Role       @default(USER)
+  status   UserStatus @default(ACTIVE)
+  avatar   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownedEvents Event[] @relation("EventOwner")
+
+  registrations Registration[] @relation("UserRegistrations")
+  invitations   Registration[] @relation("InvitedByUser")
+
+  reviews Review[]
+
+  @@map("users")
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  startAt     DateTime
+
+  venue     String?
+  eventLink String?
+
+  status     EventStatus     @default(PENDING)
+  visibility EventVisibility @default(PUBLIC)
+
+  registrationFee Decimal @default(0) @db.Decimal(10, 2)
+
+  ownerId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner         User           @relation("EventOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+  reviews       Review[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([visibility])
+  @@map("events")
+}
+
+model Registration {
+  id String @id @default(uuid())
+
+  eventId String
+  userId  String
+
+  status        JoinStatus    @default(PENDING)
+  paymentStatus PaymentStatus @default(UNPAID)
+  transactionId String?
+
+  // Invitation
+  invitedById String?
+
+  // Relations (FIXED)
+  user      User  @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User? @relation("InvitedByUser", fields: [invitedById], references: [id])
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@map("registrations")
+}
+
+model Review {
+  id String @id @default(uuid())
+
+  eventId String
+  userId  String
+
+  rating  Int
+  comment String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("reviews")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+}
+
+enum EventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EventVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum JoinStatus {
+  INVITED
+  PENDING
+  APPROVED
+  REJECTED
+  BANNED
+}
+
+enum PaymentStatus {
+  PAID
+  UNPAID
+}
