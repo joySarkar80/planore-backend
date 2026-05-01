@@ -3,7 +3,7 @@ export const validateEmail = function (email: string) {
     return re.test(email);
 };
 
-export const USER_ROLE = {
-    user: 'USER',
-    admin: 'ADMIN',
-} as const;
+// export const USER_ROLE = {
+//     user: 'USER',
+//     admin: 'ADMIN',
+// } as const;

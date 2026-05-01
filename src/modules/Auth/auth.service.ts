@@ -4,8 +4,9 @@ import AppError from '../../errors/AppError';
 
 import bcryptJs from 'bcryptjs';
 import { prisma } from '../../lib/prisma';
-import { USER_ROLE } from '../User/user.utils';
+
 import { createToken, verifyToken } from './auth.utils';
+import { USER_ROLE } from '../../middlewares/auth';
 // import { createToken, verifyToken } from './auth.utils';
 
 export type TLoginUser = {
@@ -108,7 +109,7 @@ const registerUser = async (userData: TLoginUser) => {
             email: userData.email,
             password: hashedPassword,
             img: userData.img,
-            role: USER_ROLE.user,
+            role: USER_ROLE.user, // default role is user
         },
     });
 

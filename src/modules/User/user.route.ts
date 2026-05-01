@@ -1,37 +1,30 @@
-// import express from 'express';
-// import validateRequest from '../../middlewares/validateRequest';
-// import { UserController } from './user.controller';
-// import {
-//     createUserValidationSchema,
-//     updateUserValidationSchema,
-// } from './user.validation';
-// import auth from '../../middlewares/auth';
-// import { USER_ROLE } from './user.utils';
+import express from 'express';
+import validateRequest from '../../middlewares/validateRequest';
+import { UserController } from './user.controller';
+import {
+    createUserValidationSchema,
+    updateUserValidationSchema,
+} from './user.validation';
+import auth, { USER_ROLE } from '../../middlewares/auth';
 
-// const router = express.Router();
 
-// router.post(
-//     '/',
-//     auth(USER_ROLE.admin),
-//     validateRequest(createUserValidationSchema),
-//     UserController.createUser,
-// );
+const router = express.Router();
 
-// router.get('/', auth(USER_ROLE.admin), UserController.getAllUsers);
+router.get('/', auth(USER_ROLE.admin), UserController.getAllUsersHandler);
 
-// // router.get(
-// //     '/:id',
-// //     auth(USER_ROLE.admin, USER_ROLE.driver, USER_ROLE.user),
-// //     UserController.findUserById,
-// // );
+router.get(
+    '/:id',
+    auth(USER_ROLE.admin, USER_ROLE.user),
+    UserController.findUserByIdHandler,
+);
 
-// router.patch(
-//     '/:id',
-//     auth(USER_ROLE.admin),
-//     validateRequest(updateUserValidationSchema),
-//     UserController.updateUserById,
-// );
+router.patch(
+    '/:id',
+    auth(USER_ROLE.user),
+    validateRequest(updateUserValidationSchema),
+    UserController.updateUserByIdHandler,
+);
 
-// router.delete('/:id', auth(USER_ROLE.admin), UserController.deleteUserById);
+router.delete('/:id', auth(USER_ROLE.admin), UserController.deleteUserByIdHandler);
 
-// export const UserRoutes = router;
+export const UserRoutes = router;

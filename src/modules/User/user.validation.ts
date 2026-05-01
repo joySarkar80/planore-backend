@@ -7,8 +7,6 @@ export const createUserValidationSchema = z.object({
         password: z.string(),
         Role: z.enum(["ADMIN", "USER"]).optional(),
         img: z.string().optional(),
-        rating: z.number().optional(),
-        rents: z.array(z.string()).optional(),
     }),
 });
 
@@ -19,8 +17,6 @@ export const updateUserValidationSchema = z.object({
         password: z.string().optional(),
         Role: z.enum(["ADMIN", "USER"]).optional(),
         img: z.string().optional(),
-        rating: z.number().optional(),
-        rents: z.array(z.string()).optional(),
     }),
 });
 
