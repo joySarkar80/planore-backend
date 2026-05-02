@@ -1,13 +1,88 @@
-import { z } from 'zod';
+import { z } from "zod";
+import { EventVisibility } from "../../../generated/prisma/enums";
 
-export const createEventSchema = z.object({
+const createEventSchema = z.object({
     body: z.object({
-        title: z.string().min(3, { message: "টাইটেল অন্তত ৩ অক্ষরের হতে হবে" }),
-        description: z.string().min(10, { message: "বিবরণ অন্তত ১০ অক্ষরের হতে হবে" }),
-        startAt: z.string(),
-        venue: z.string().optional(),
-        eventLink: z.string().optional(),
-        visibility: z.enum(['PUBLIC', 'PRIVATE']).optional(),
-        registrationFee: z.number().nonnegative().optional(),
+        title: z
+            .string({ required_error: "Title is required" })
+            .min(3, "Title must be at least 3 characters")
+            .max(150, "Title must not exceed 150 characters"),
+
+        description: z
+            .string({ required_error: "Description is required" })
+            .min(10, "Description must be at least 10 characters"),
+
+        startAt: z
+            .string({ required_error: "Start date/time is required" })
+            .datetime({ message: "Invalid date format. Use ISO 8601 format" }),
+
+        venue: z.string().max(255).optional(),
+
+        eventLink: z
+            .string()
+            .url({ message: "Invalid event link URL" })
+            .optional(),
+
+        visibility: z
+            .enum([EventVisibility.PUBLIC, EventVisibility.PRIVATE])
+            .optional()
+            .default(EventVisibility.PUBLIC),
+
+        registrationFee: z
+            .number()
+            .min(0, "Registration fee cannot be negative")
+            .optional()
+            .default(0),
     }),
 });
+
+const updateEventSchema = z.object({
+    body: z.object({
+        title: z
+            .string()
+            .min(3, "Title must be at least 3 characters")
+            .max(150, "Title must not exceed 150 characters")
+            .optional(),
+
+        description: z
+            .string()
+            .min(10, "Description must be at least 10 characters")
+            .optional(),
+
+        startAt: z
+            .string()
+            .datetime({ message: "Invalid date format. Use ISO 8601 format" })
+            .optional(),
+
+        venue: z.string().max(255).optional(),
+
+        eventLink: z
+            .string()
+            .url({ message: "Invalid event link URL" })
+            .optional(),
+
+        visibility: z
+            .enum([EventVisibility.PUBLIC, EventVisibility.PRIVATE])
+            .optional(),
+
+        registrationFee: z
+            .number()
+            .min(0, "Registration fee cannot be negative")
+            .optional(),
+    }),
+});
+
+const updateEventStatusSchema = z.object({
+    body: z.object({
+        status: z.enum(["APPROVED", "REJECTED"], {
+            required_error: "Status is required",
+            invalid_type_error: "Status must be APPROVED or REJECTED",
+        }),
+    }),
+});
+
+export const eventValidation = {
+    createEventSchema,
+    updateEventSchema,
+    updateEventStatusSchema,
+};
