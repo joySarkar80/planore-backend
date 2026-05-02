@@ -1,11 +1,11 @@
 import jwt, { JwtPayload, SignOptions, Secret } from 'jsonwebtoken';
 
 export const createToken = (
-    jwtPayload: { email: string; role: string; id: string }, 
+    jwtPayload: { email: string; role: string; id: string },
     secret: Secret,
     expiresIn: string,
 ) => {
-    
+
     if (!secret) {
         throw new Error("JWT Secret is missing in config!");
     }
@@ -20,3 +20,6 @@ export const verifyToken = (token: string, secret: Secret) => {
     return jwt.verify(token, secret) as JwtPayload;
 };
 
+export const extractUserFromRequest = (req: any) => {
+    return req.user;
+};

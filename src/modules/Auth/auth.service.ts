@@ -7,14 +7,11 @@ import { prisma } from '../../lib/prisma';
 
 import { createToken, verifyToken } from './auth.utils';
 import { USER_ROLE } from '../../middlewares/auth';
+import { TAuthUser, TLoginUser } from './auth.interface';
+import { JwtPayload } from 'jsonwebtoken';
 // import { createToken, verifyToken } from './auth.utils';
 
-export type TLoginUser = {
-    name?: string;
-    email: string;
-    password?: string;
-    img?: string;
-};
+
 
 const loginUser = async (payload: TLoginUser) => {
     // checking if the user exists
@@ -116,8 +113,26 @@ const registerUser = async (userData: TLoginUser) => {
     return user;
 };
 
+const getMeFromDB = async (user: JwtPayload) => {
+  const result = await prisma.user.findUnique({
+    where: {
+      id: user.id,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+    },
+  });
+
+  return result;
+};
+
 export const AuthServices = {
     loginUser,
     refreshToken,
     registerUser,
+    getMeFromDB,
 };

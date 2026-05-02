@@ -54,8 +54,22 @@ const registerUser = catchAsync(async (req, res) => {
     });
 });
 
+const getMeHandler = catchAsync(async (req, res) => {
+  const user = req.user; // middleware theke asbe
+
+  const result = await AuthServices.getMeFromDB(user);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'User retrieved successfully',
+    data: result,
+  });
+});
+
 export const AuthControllers = {
     loginUser,
     refreshToken,
     registerUser,
+    getMeHandler,
 };

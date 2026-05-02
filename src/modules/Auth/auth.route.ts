@@ -2,8 +2,15 @@ import express from 'express';
 import validateRequest from '../../middlewares/validateRequest';
 import { AuthValidation } from './auth.validation';
 import { AuthControllers } from './auth.controller';
+import auth, { USER_ROLE } from '../../middlewares/auth';
 
 const router = express.Router();
+
+router.get(
+    '/me',
+    auth(USER_ROLE.admin, USER_ROLE.user),
+    AuthControllers.getMeHandler,
+);
 
 router.post(
     '/login',
