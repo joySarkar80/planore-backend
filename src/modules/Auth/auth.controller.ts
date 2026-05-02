@@ -3,6 +3,17 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { AuthServices } from './auth.service';
 
+const registerUser = catchAsync(async (req, res) => {
+    const result = await AuthServices.registerUser(req.body);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'User registered successfully',
+        data: result,
+    });
+});
+
 const loginUser = catchAsync(async (req, res) => {
     // console.log(req);
     const result = await AuthServices.loginUser(req.body);
@@ -11,7 +22,7 @@ const loginUser = catchAsync(async (req, res) => {
 
     res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: false,     
+        secure: false,
         sameSite: "lax",
     });
 
@@ -43,28 +54,17 @@ const refreshToken = catchAsync(async (req, res) => {
     });
 });
 
-const registerUser = catchAsync(async (req, res) => {
-    const result = await AuthServices.registerUser(req.body);
+const getMeHandler = catchAsync(async (req, res) => {
+    const user = req.user; // middleware theke asbe
+
+    const result = await AuthServices.getMeFromDB(user);
 
     sendResponse(res, {
-        statusCode: httpStatus.OK,
         success: true,
-        message: 'User registered successfully',
+        statusCode: httpStatus.OK,
+        message: 'User retrieved successfully',
         data: result,
     });
-});
-
-const getMeHandler = catchAsync(async (req, res) => {
-  const user = req.user; // middleware theke asbe
-
-  const result = await AuthServices.getMeFromDB(user);
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: 'User retrieved successfully',
-    data: result,
-  });
 });
 
 export const AuthControllers = {

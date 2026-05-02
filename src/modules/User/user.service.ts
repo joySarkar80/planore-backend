@@ -11,28 +11,8 @@ export type TUserPayload = {
     email: string;
     password: string;
     role?: "ADMIN" | "USER";
-    img?: string;
+    avatar?: string;
     rating?: number;
-};
-
-
-const findUserById = async (userId: string, currentUser: any) => {
-    if (
-        currentUser.role !== USER_ROLE.admin &&
-        currentUser.id !== userId
-    ) {
-        throw new AppError(
-            httpStatus.FORBIDDEN,
-            'You are not allowed to access this user'
-        );
-    }
-    const result = await prisma.user.findUnique({
-        where: { id: userId },
-    });
-    if (!result) {
-        throw new AppError(httpStatus.NOT_FOUND, 'This user is not found!');
-    }
-    return result;
 };
 
 const getAllUsers = async (query: Record<string, unknown>) => {
@@ -93,10 +73,39 @@ const getAllUsers = async (query: Record<string, unknown>) => {
     };
 };
 
+const findUserById = async (userId: string, currentUser: any) => {
+    if (
+        currentUser.role !== USER_ROLE.admin &&
+        currentUser.id !== userId
+    ) {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            'You are not allowed to access this user'
+        );
+    }
+    const result = await prisma.user.findUnique({
+        where: { id: userId },
+    });
+    if (!result) {
+        throw new AppError(httpStatus.NOT_FOUND, 'This user is not found!');
+    }
+    return result;
+};
+
+
+
 const updateUserById = async (userId: string, payload: Partial<TUserPayload>) => {
     const result = await prisma.user.update({
         where: { id: userId },
-        data: payload,
+        data: {
+            name: payload.name,
+            avatar: payload.avatar,
+        },
+        select: {
+            id: true,
+            name: true,
+            avatar: true,
+        },
     });
     return result;
 };
@@ -104,6 +113,11 @@ const updateUserById = async (userId: string, payload: Partial<TUserPayload>) =>
 const deleteUserById = async (userId: string) => {
     const result = await prisma.user.delete({
         where: { id: userId },
+        select: {
+            id: true,
+            name: true,
+            avatar: true,
+        },
     });
     return result;
 };

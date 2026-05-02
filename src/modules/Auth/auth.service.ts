@@ -7,11 +7,29 @@ import { prisma } from '../../lib/prisma';
 
 import { createToken, verifyToken } from './auth.utils';
 import { USER_ROLE } from '../../middlewares/auth';
-import { TAuthUser, TLoginUser } from './auth.interface';
+import { TLoginUser } from './auth.interface';
 import { JwtPayload } from 'jsonwebtoken';
-// import { createToken, verifyToken } from './auth.utils';
 
 
+const registerUser = async (userData: TLoginUser) => {
+    // hashing password
+    const hashedPassword = await bcryptJs.hash(
+        userData.password as string,
+        Number(config.bcrypt_salt_rounds),
+    );
+
+    const user = await prisma.user.create({
+        data: {
+            name: userData.name || '',
+            email: userData.email,
+            password: hashedPassword,
+            img: userData.img,
+            role: USER_ROLE.user, // default role is user
+        },
+    });
+
+    return user;
+};
 
 const loginUser = async (payload: TLoginUser) => {
     // checking if the user exists
@@ -93,41 +111,21 @@ const refreshToken = async (token: string) => {
     };
 };
 
-const registerUser = async (userData: TLoginUser) => {
-    // hashing password
-    const hashedPassword = await bcryptJs.hash(
-        userData.password as string,
-        Number(config.bcrypt_salt_rounds),
-    );
-
-    const user = await prisma.user.create({
-        data: {
-            name: userData.name || '',
-            email: userData.email,
-            password: hashedPassword,
-            img: userData.img,
-            role: USER_ROLE.user, // default role is user
+const getMeFromDB = async (user: JwtPayload) => {
+    const result = await prisma.user.findUnique({
+        where: {
+            id: user.id,
+        },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            createdAt: true,
         },
     });
 
-    return user;
-};
-
-const getMeFromDB = async (user: JwtPayload) => {
-  const result = await prisma.user.findUnique({
-    where: {
-      id: user.id,
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-    },
-  });
-
-  return result;
+    return result;
 };
 
 export const AuthServices = {

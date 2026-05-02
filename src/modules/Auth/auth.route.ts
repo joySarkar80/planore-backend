@@ -6,10 +6,10 @@ import auth, { USER_ROLE } from '../../middlewares/auth';
 
 const router = express.Router();
 
-router.get(
-    '/me',
-    auth(USER_ROLE.admin, USER_ROLE.user),
-    AuthControllers.getMeHandler,
+router.post(
+    '/register',
+    validateRequest(AuthValidation.registerUserValidationSchema),
+    AuthControllers.registerUser,
 );
 
 router.post(
@@ -24,10 +24,10 @@ router.post(
     AuthControllers.refreshToken,
 );
 
-router.post(
-    '/register',
-    validateRequest(AuthValidation.registerUserValidationSchema),
-    AuthControllers.registerUser,
+router.get(
+    '/me',
+    auth(USER_ROLE.admin, USER_ROLE.user),
+    AuthControllers.getMeHandler,
 );
 
 export const AuthRoutes = router;

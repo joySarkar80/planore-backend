@@ -10,21 +10,23 @@ import auth, { USER_ROLE } from '../../middlewares/auth';
 
 const router = express.Router();
 
+// Specific Routes 
+router.patch(
+    '/me',
+    auth(USER_ROLE.user),
+    validateRequest(updateUserValidationSchema),
+    UserController.updateUserByIdHandler,
+);
+
+// General Resource Routes
 router.get('/', auth(USER_ROLE.admin), UserController.getAllUsersHandler);
 
 
-
+// Dynamic routes
 router.get(
     '/:id',
     auth(USER_ROLE.admin, USER_ROLE.user),
     UserController.findUserByIdHandler,
-);
-
-router.patch(
-    '/:id',
-    auth(USER_ROLE.user),
-    validateRequest(updateUserValidationSchema),
-    UserController.updateUserByIdHandler,
 );
 
 router.delete('/:id', auth(USER_ROLE.admin), UserController.deleteUserByIdHandler);
