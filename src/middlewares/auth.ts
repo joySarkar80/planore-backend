@@ -44,10 +44,10 @@ const auth = (...roles: USER_ROLE[]) => {
                 );
             }
 
-            const { role, email } = decoded;
+            const { role, email, id } = decoded;
 
             // 3. payload validation
-            if (!email || !role) {
+            if (!email || !role || !id) {
                 throw new AppError(
                     httpStatus.UNAUTHORIZED,
                     'Invalid token payload!'
@@ -76,6 +76,7 @@ const auth = (...roles: USER_ROLE[]) => {
 
             // 6. attach user to request
             req.user = {
+                id,
                 email,
                 role,
                 ...decoded,

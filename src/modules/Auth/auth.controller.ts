@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { AuthServices } from './auth.service';
+import AppError from '../../errors/AppError';
 
 const registerUser = catchAsync(async (req, res) => {
     const result = await AuthServices.registerUser(req.body);
@@ -55,6 +56,10 @@ const refreshToken = catchAsync(async (req, res) => {
 });
 
 const getMeHandler = catchAsync(async (req, res) => {
+    if (!req.user) {
+        throw new AppError(httpStatus.UNAUTHORIZED, 'User not authenticated');
+    }
+
     const user = req.user; // middleware theke asbe
 
     const result = await AuthServices.getMeFromDB(user);
