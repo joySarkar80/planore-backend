@@ -1,0 +1,638 @@
+src/
+├── errors/
+│   ├── AppError.ts
+│   ├── handlePrismaError.ts
+│   ├── handlePrismaValidationError.ts
+│   └── handleZodError.ts
+├── interface/
+│   ├── error.interface.ts
+│   └── index.d.ts
+├── middlewares/
+│   ├── auth.ts
+│   ├── globalErrorHandler.ts
+│   ├── notFound.ts
+│   └── validateRequest.ts
+├── utils/
+│   ├── catchAsync.ts
+│   └── sendResponse.ts
+├── app.ts
+└── server.ts
+            
+
+├── app.ts
+├── config
+│   └── index.ts
+├── errors
+│   ├── AppError.ts
+│   ├── handlePrismaError.ts
+│   ├── handlePrismaValidationError.ts
+│   └── handleZodError.ts
+├── interface
+│   ├── error.interface.ts
+│   └── index.d.ts
+├── lib
+│   └── prisma.ts
+├── middlewares
+│   ├── auth.ts
+│   ├── globalErrorHandler.ts
+│   ├── notFound.ts
+│   └── validateRequest.ts
+├── modules
+│   ├── Auth
+│   │   ├── auth.constant.ts
+│   │   ├── auth.controller.ts
+│   │   ├── auth.interface.ts
+│   │   ├── auth.route.ts
+│   │   ├── auth.service.ts
+│   │   ├── auth.utils.ts
+│   │   └── auth.validation.ts
+│   ├── Event
+│   │   ├── event.controller.ts
+│   │   ├── event.interface.ts
+│   │   ├── event.route.ts
+│   │   ├── event.service.ts
+│   │   └── event.validation.ts
+│   └── User
+│       ├── user.constant.ts
+│       ├── user.controller.ts
+│       ├── user.interface.ts
+│       ├── user.route.ts
+│       ├── user.service.ts
+│       ├── user.utils.ts
+│       └── user.validation.ts
+├── routes
+│   └── index.ts
+├── server.ts
+└── utils
+    ├── catchAsync.ts
+    └── sendResponse.ts            
+
+
+
+🧱 📁 Full Folder Structure (Module Pattern অনুযায়ী)
+src/modules/
+├── Auth/
+├── User/
+├── Event/
+├── Registration/
+├── Review/
+├── Payment/
+└── Dashboard/
+
+
+🔐 1. Auth Module
+Auth/
+├── auth.constant.ts
+├── auth.controller.ts
+├── auth.interface.ts
+├── auth.route.ts
+├── auth.service.ts
+├── auth.utils.ts
+└── auth.validation.ts
+
+| Method | Endpoint              | Description       | কার জন্য |
+| ------ | --------------------- | ----------------- | -------- |
+| POST   | /auth/register        | User register     | Public   |
+-----------------------------------------------------------------
+| POST   | /auth/login           | Login + JWT       | Public   |
+-----------------------------------------------------------------
+| GET    | /auth/me              | Current user info | User     |
+-----------------------------------------------------------------
+| POST   | /auth/change-password | Change password   | User     |
+-----------------------------------------------------------------
+
+
+👤 2. User Module
+User/
+├── user.controller.ts
+├── user.service.ts
+├── user.route.ts
+└── user.validation.ts
+
+| Method | Endpoint       | Description      | কার জন্য   |
+| ------ | -------------- | ---------------- | ---------- |
+| GET    | /users         | Get all users    | Admin      |
+-----------------------------------------------------------
+| GET    | /users/:id     | Get user profile | Admin/User |
+-----------------------------------------------------------
+| PATCH  | /users/:id     | Update profile   | User       |
+-----------------------------------------------------------
+| DELETE | /users/:id     | Delete user      | Admin      |
+-----------------------------------------------------------
+| PATCH  | /users/ban/:id | Ban user         | Admin      |
+-----------------------------------------------------------
+
+
+🎉 3. Event Module (CORE MODULE)
+Event/
+├── event.controller.ts
+├── event.service.ts
+├── event.route.ts
+├── event.validation.ts
+└── event.interface.ts
+
+🔹 Public APIs
+| Method | Endpoint    | Description      | কার জন্য |
+| ------ | ----------- | ---------------- | -------- |
+| GET    | /events     | সব public events | Public   |
+------------------------------------------------------
+| GET    | /events/:id | event details    | Public   |
+------------------------------------------------------
+
+🔹 User APIs
+| Method | Endpoint          | Description       | কার জন্য |
+| ------ | ----------------- | ----------------- | -------- |
+| POST   | /events           | Create event      | User     |
+-------------------------------------------------------------
+| PATCH  | /events/:id       | Update event      | Owner    |
+-------------------------------------------------------------
+| DELETE | /events/:id       | Delete event      | Owner    |
+-------------------------------------------------------------
+| GET    | /events/my-events | My created events | User     |
+-------------------------------------------------------------
+
+🔹 Admin APIs
+| Method | Endpoint           | Description          | কার জন্য |
+| ------ | ------------------ | -------------------- | -------- |
+| PATCH  | /events/status/:id | Approve/Reject event | Admin    |
+-----------------------------------------------------------------
+| DELETE | /events/admin/:id  | Force delete         | Admin    |
+-----------------------------------------------------------------
+
+
+🧾 4. Registration Module (VERY IMPORTANT)
+Registration/
+├── registration.controller.ts
+├── registration.service.ts
+├── registration.route.ts
+├── registration.validation.ts
+└── registration.interface.ts
+
+🔹 Join Event
+| Method | Endpoint                     | Description     | কার জন্য |
+| ------ | ---------------------------- | --------------- | -------- |
+| POST   | /registrations/join/:eventId | Join free event | User     |
+----------------------------------------------------------------------
+
+🔹 Paid Join
+| Method | Endpoint                         | Description       | কার জন্য |
+| ------ | -------------------------------- | ----------------- | -------- |
+| POST   | /registrations/pay-join/:eventId | Paid join request | User     |
+----------------------------------------------------------------------------
+
+🔹 Private Event Request
+| Method | Endpoint                        | Description     | কার জন্য |
+| ------ | ------------------------------- | --------------- | -------- |
+| POST   | /registrations/request/:eventId | Request to join | User     |
+-------------------------------------------------------------------------
+
+🔹 Invitations
+| Method | Endpoint                  | Description   | কার জন্য |
+| ------ | ------------------------- | ------------- | -------- |
+| POST   | /registrations/invite     | Invite user   | Owner    |
+-----------------------------------------------------------------
+| PATCH  | /registrations/accept/:id | Accept invite | User     |
+-----------------------------------------------------------------
+| PATCH  | /registrations/reject/:id | Reject invite | User     |
+-----------------------------------------------------------------
+
+🔹 Owner Controls
+| Method | Endpoint                   | Description         | কার জন্য |
+| ------ | -------------------------- | ------------------- | -------- |
+| PATCH  | /registrations/approve/:id | Approve participant | Owner    |
+------------------------------------------------------------------------
+| PATCH  | /registrations/reject/:id  | Reject participant  | Owner    |
+------------------------------------------------------------------------
+| PATCH  | /registrations/ban/:id     | Ban user            | Owner    |
+------------------------------------------------------------------------
+
+🔹 View Participants
+| Method | Endpoint                      | Description        | কার জন্য |
+| ------ | ----------------------------- | ------------------ | -------- |
+| GET    | /registrations/event/:eventId | Event participants | Owner    |
+--------------------------------------------------------------------------
+| GET    | /registrations/my             | My registrations   | User     |
+--------------------------------------------------------------------------
+
+
+⭐ 5. Review Module
+Review/
+├── review.controller.ts
+├── review.service.ts
+├── review.route.ts
+└── review.validation.ts
+
+| Method | Endpoint                | Description   | কার জন্য |
+| ------ | ----------------------- | ------------- | -------- |
+| POST   | /reviews                | Create review | User     |
+---------------------------------------------------------------
+| GET    | /reviews/event/:eventId | Event reviews | Public   |
+---------------------------------------------------------------
+| PATCH  | /reviews/:id            | Update review | User     |
+---------------------------------------------------------------
+| DELETE | /reviews/:id            | Delete review | User     |
+---------------------------------------------------------------
+
+
+💳 6. Payment Module (Future-ready but keep minimal now)
+Payment/
+├── payment.controller.ts
+├── payment.service.ts
+├── payment.route.ts
+└── payment.utils.ts
+
+| Method | Endpoint           | Description              | কার জন্য |
+| ------ | ------------------ | ------------------------ | -------- |
+| POST   | /payments/initiate | Start payment            | User     |
+---------------------------------------------------------------------
+| POST   | /payments/success  | Payment success callback | Gateway  |
+---------------------------------------------------------------------
+| POST   | /payments/fail     | Payment fail callback    | Gateway  |
+---------------------------------------------------------------------
+
+
+📊 7. Dashboard Module (Optional but useful)
+Dashboard/
+├── dashboard.controller.ts
+├── dashboard.service.ts
+└── dashboard.route.ts
+
+| Method | Endpoint               | Description     | কার জন্য   |
+| ------ | ---------------------- | --------------- | ---------- |
+| GET    | /dashboard/overview    | Stats           | User/Admin |
+------------------------------------------------------------------
+| GET    | /dashboard/my-events   | My events       | User       |
+------------------------------------------------------------------
+| GET    | /dashboard/invitations | Pending invites | User       |
+------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 📄 Planora Backend PRD (With Complete API Tables)
+
+---
+
+## 🟢 1. Overview
+
+Planora Backend is a **modular REST API system** built with **Express + Prisma + PostgreSQL**, supporting:
+
+* JWT Authentication
+* Event Management
+* Participation सिस्टम (complex flows)
+* Payment सिस्टम
+* Role-based Access Control
+
+এই PRD তে **API tables intact রাখা হয়েছে (as requested)** + সাথে detailed logic explain করা হয়েছে।
+
+---
+
+## 🔐 2. Auth Module
+
+### 📁 Structure
+
+```
+Auth/
+├── auth.constant.ts
+├── auth.controller.ts
+├── auth.interface.ts
+├── auth.route.ts
+├── auth.service.ts
+├── auth.utils.ts
+└── auth.validation.ts
+```
+
+### 📡 APIs
+
+| Method | Endpoint              | Description       | কার জন্য |
+| ------ | --------------------- | ----------------- | -------- |
+| POST   | /auth/register        | User register     | Public   |
+| POST   | /auth/login           | Login + JWT       | Public   |
+| GET    | /auth/me              | Current user info | User     |
+| POST   | /auth/change-password | Change password   | User     |
+
+### ⚙️ Business Logic
+
+* Password bcrypt দিয়ে hash হবে
+* Login এ Access + Refresh token generate হবে
+* `/me` endpoint token থেকে user identify করবে
+* Password change করলে old password verify করতে হবে
+
+---
+
+## 👤 3. User Module
+
+### 📁 Structure
+
+```
+User/
+├── user.controller.ts
+├── user.service.ts
+├── user.route.ts
+└── user.validation.ts
+```
+
+### 📡 APIs
+
+| Method | Endpoint       | Description      | কার জন্য   |
+| ------ | -------------- | ---------------- | ---------- |
+| GET    | /users         | Get all users    | Admin      |
+| GET    | /users/:id     | Get user profile | Admin/User |
+| PATCH  | /users/:id     | Update profile   | User       |
+| DELETE | /users/:id     | Delete user      | Admin      |
+| PATCH  | /users/ban/:id | Ban user         | Admin      |
+
+### ⚙️ Business Logic
+
+* User নিজের profile update করতে পারবে
+* Admin সব user manage করতে পারবে
+* Banned user login + participation block হবে
+
+---
+
+## 🎉 4. Event Module (CORE)
+
+### 📁 Structure
+
+```
+Event/
+├── event.controller.ts
+├── event.service.ts
+├── event.route.ts
+├── event.validation.ts
+└── event.interface.ts
+```
+
+---
+
+### 📡 Public APIs
+
+| Method | Endpoint    | Description      | কার জন্য |
+| ------ | ----------- | ---------------- | -------- |
+| GET    | /events     | সব public events | Public   |
+| GET    | /events/:id | event details    | Public   |
+
+---
+
+### 📡 User APIs
+
+| Method | Endpoint          | Description       | কার জন্য |
+| ------ | ----------------- | ----------------- | -------- |
+| POST   | /events           | Create event      | User     |
+| PATCH  | /events/:id       | Update event      | Owner    |
+| DELETE | /events/:id       | Delete event      | Owner    |
+| GET    | /events/my-events | My created events | User     |
+
+---
+
+### 📡 Admin APIs
+
+| Method | Endpoint           | Description          | কার জন্য |
+| ------ | ------------------ | -------------------- | -------- |
+| PATCH  | /events/status/:id | Approve/Reject event | Admin    |
+| DELETE | /events/admin/:id  | Force delete         | Admin    |
+
+---
+
+### ⚙️ Business Logic
+
+* Event owner ছাড়া কেউ update/delete করতে পারবে না
+* Private event direct visible না
+* Paid event → payment required
+* Admin override করতে পারবে
+
+---
+
+## 🧾 5. Registration Module (MOST IMPORTANT)
+
+### 📁 Structure
+
+```
+Registration/
+├── registration.controller.ts
+├── registration.service.ts
+├── registration.route.ts
+├── registration.validation.ts
+└── registration.interface.ts
+```
+
+---
+
+### 📡 Join Event
+
+| Method | Endpoint                     | Description     | কার জন্য |
+| ------ | ---------------------------- | --------------- | -------- |
+| POST   | /registrations/join/:eventId | Join free event | User     |
+
+---
+
+### 📡 Paid Join
+
+| Method | Endpoint                         | Description       | কার জন্য |
+| ------ | -------------------------------- | ----------------- | -------- |
+| POST   | /registrations/pay-join/:eventId | Paid join request | User     |
+
+---
+
+### 📡 Private Request
+
+| Method | Endpoint                        | Description     | কার জন্য |
+| ------ | ------------------------------- | --------------- | -------- |
+| POST   | /registrations/request/:eventId | Request to join | User     |
+
+---
+
+### 📡 Invitations
+
+| Method | Endpoint                  | Description   | কার জন্য |
+| ------ | ------------------------- | ------------- | -------- |
+| POST   | /registrations/invite     | Invite user   | Owner    |
+| PATCH  | /registrations/accept/:id | Accept invite | User     |
+| PATCH  | /registrations/reject/:id | Reject invite | User     |
+
+---
+
+### 📡 Owner Controls
+
+| Method | Endpoint                   | Description         | কার জন্য |
+| ------ | -------------------------- | ------------------- | -------- |
+| PATCH  | /registrations/approve/:id | Approve participant | Owner    |
+| PATCH  | /registrations/reject/:id  | Reject participant  | Owner    |
+| PATCH  | /registrations/ban/:id     | Ban user            | Owner    |
+
+---
+
+### 📡 View Participants
+
+| Method | Endpoint                      | Description        | কার জন্য |
+| ------ | ----------------------------- | ------------------ | -------- |
+| GET    | /registrations/event/:eventId | Event participants | Owner    |
+| GET    | /registrations/my             | My registrations   | User     |
+
+---
+
+### ⚙️ Core Logic (IMPORTANT 🔥)
+
+| Event Type   | Flow                        |
+| ------------ | --------------------------- |
+| Free Public  | Auto APPROVED               |
+| Paid Public  | Payment → PENDING           |
+| Private Free | Request → PENDING           |
+| Private Paid | Payment + Request → PENDING |
+
+---
+
+### ⚠️ Rules
+
+* Duplicate join allowed না
+* Banned user rejoin করতে পারবে না
+* Payment verify না হলে join valid না
+
+---
+
+## ⭐ 6. Review Module
+
+### 📁 Structure
+
+```
+Review/
+├── review.controller.ts
+├── review.service.ts
+├── review.route.ts
+└── review.validation.ts
+```
+
+### 📡 APIs
+
+| Method | Endpoint                | Description   | কার জন্য |
+| ------ | ----------------------- | ------------- | -------- |
+| POST   | /reviews                | Create review | User     |
+| GET    | /reviews/event/:eventId | Event reviews | Public   |
+| PATCH  | /reviews/:id            | Update review | User     |
+| DELETE | /reviews/:id            | Delete review | User     |
+
+### ⚙️ Logic
+
+* Only participants review দিতে পারবে
+* One user → one review per event
+
+---
+
+## 💳 7. Payment Module
+
+### 📁 Structure
+
+```
+Payment/
+├── payment.controller.ts
+├── payment.service.ts
+├── payment.route.ts
+└── payment.utils.ts
+```
+
+### 📡 APIs
+
+| Method | Endpoint           | Description              | কার জন্য |
+| ------ | ------------------ | ------------------------ | -------- |
+| POST   | /payments/initiate | Start payment            | User     |
+| POST   | /payments/success  | Payment success callback | Gateway  |
+| POST   | /payments/fail     | Payment fail callback    | Gateway  |
+
+---
+
+### ⚙️ Payment Flow
+
+1. User → initiate
+2. Redirect → gateway
+3. Callback আসে
+4. Verify করা হয়
+5. Registration update
+
+---
+
+## 📊 8. Dashboard Module
+
+### 📁 Structure
+
+```
+Dashboard/
+├── dashboard.controller.ts
+├── dashboard.service.ts
+└── dashboard.route.ts
+```
+
+### 📡 APIs
+
+| Method | Endpoint               | Description     | কার জন্য   |
+| ------ | ---------------------- | --------------- | ---------- |
+| GET    | /dashboard/overview    | Stats           | User/Admin |
+| GET    | /dashboard/my-events   | My events       | User       |
+| GET    | /dashboard/invitations | Pending invites | User       |
+
+---
+
+## ⚠️ 9. Validation & Error Handling
+
+### Validation
+
+* Required fields
+* Email ঠিক থাকতে হবে
+* Fee ≥ 0
+
+### Error Handling
+
+* Global error handler
+* Prisma error mapping
+* Zod validation error
+
+---
+
+## 🔐 10. Security
+
+* JWT authentication
+* Role-based middleware
+* Protected routes
+* Input sanitization
+
+---
+
+## 🧠 Final কথা
+
+এই PRD version টা তোমার requirement অনুযায়ী:
+
+✔ API tables intact রাখা হয়েছে
+✔ Structure + logic explain করা হয়েছে
+✔ Implementation-ready backend blueprint
+
+যদি চাও, next step এ আমি তোমার জন্য:
+👉 Prisma schema
+👉 Database relation diagram
+👉 বা full backend starter code
+
+একদম production level এ বানিয়ে দিতে পারি

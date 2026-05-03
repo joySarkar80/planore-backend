@@ -15,11 +15,11 @@ const router = express.Router();
 // GET /events — browse all approved public events
 router.get("/", eventController.getAllPublicEventsHandler);
 
-// GET /events/my-events — must come BEFORE /:id to avoid route conflict
+// GET /events/my-events
 // (authenticated user's events)
 router.get(
     "/my-events",
-    auth(USER_ROLE.user, USER_ROLE.admin),
+    auth(USER_ROLE.user),
     eventController.getMyEventsHandler
 );
 
@@ -33,7 +33,7 @@ router.get("/:id", eventController.getEventByIdHandler);
 // POST /events — create a new event
 router.post(
     "/",
-    auth(USER_ROLE.user, USER_ROLE.admin),
+    auth(USER_ROLE.user),
     validateRequest(eventValidation.createEventSchema),
     eventController.createEventHandler
 );
@@ -41,7 +41,7 @@ router.post(
 // PATCH /events/:id — update own event
 router.patch(
     "/:id",
-    auth(USER_ROLE.user, USER_ROLE.admin),
+    auth(USER_ROLE.user),
     validateRequest(eventValidation.updateEventSchema),
     eventController.updateEventHandler
 );
@@ -49,7 +49,7 @@ router.patch(
 // DELETE /events/:id — delete own event
 router.delete(
     "/:id",
-    auth(USER_ROLE.user, USER_ROLE.admin),
+    auth(USER_ROLE.user),
     eventController.deleteEventHandler
 );
 

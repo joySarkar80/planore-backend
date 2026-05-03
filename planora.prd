@@ -1,0 +1,361 @@
+# 📄 Product Requirements Document (PRD)
+
+## 🟢 Product Name: Planora
+
+---
+
+## 1. 📌 Overview
+
+Planora is a secure, JWT-protected event management platform where **Admins** and **Users** can create, manage, and participate in events. Events can be **Public or Private**, and may include **registration fees with integrated payment systems**.
+
+The platform focuses on seamless event discovery, participation, and management with a strong emphasis on **role-based control, payments, and user experience**.
+
+---
+
+## 2. 🎯 Objectives
+
+* Enable users to **create and manage events easily**
+* Provide **secure participation workflows** (free & paid)
+* Support **public and private event ecosystems**
+* Implement **robust payment integration**
+* Ensure **admin-level moderation and control**
+* Deliver a **clean, modern, and responsive UI**
+
+---
+
+## 3. 👥 User Roles
+
+### 🔴 Admin
+
+* Monitor all events
+* Monitor users
+* Delete inappropriate events
+* Delete user accounts
+
+### 🔵 User
+
+* Register & login
+* Create, update, delete events
+* Browse & search events
+* Join or request to join events
+* Manage reviews
+
+---
+
+## 4. 🧱 Technology Stack
+
+### Frontend
+
+* Next.js
+* Tailwind CSS
+
+### Backend
+
+* Node.js
+* Express.js
+* Prisma ORM
+
+### Database
+
+* PostgreSQL
+
+### Authentication
+
+* JWT-based authentication
+
+### Payment Integration
+
+* SSLCommerz / ShurjoPay
+
+---
+
+## 5. 🏠 Homepage
+
+### 🔹 Navbar
+
+* Home
+* Events
+* Login / Signup
+* Dashboard
+
+---
+
+### 🔹 Hero Section
+
+* Featured Event (selected by Admin)
+* Event Title
+* Event Date
+* Short Description
+* Join Button
+
+---
+
+### 🔹 Upcoming Events Slider
+
+* Displays **9 upcoming public events**
+  Each card shows:
+* Title
+* Date
+* Organizer
+* Fee Badge (Free / Paid)
+
+---
+
+### 🔹 Event Categories
+
+Filters:
+
+* Public Free
+* Public Paid
+* Private Free
+* Private Paid
+
+---
+
+### 🔹 Call To Action
+
+Encourages users to:
+
+* Create events
+* Join events
+
+---
+
+### 🔹 Footer
+
+* About
+* Contact
+* Privacy Policy
+
+---
+
+## 6. 📅 Events Module
+
+### 🔍 Events Page
+
+#### Search قابلیت
+
+Users can search by:
+
+* Title
+* Organizer
+
+#### Filters
+
+* Public Free
+* Public Paid
+* Private Free
+* Private Paid
+
+---
+
+### 🧾 Event Card
+
+Displays:
+
+* Title
+* Date
+* Organizer
+* Registration Fee
+* View Details Button
+
+---
+
+### 📄 Event Details Page
+
+#### Information প্রদর্শন
+
+* Title
+* Date & Time
+* Venue / Event Link
+* Description
+* Organizer
+* Registration Fee
+
+---
+
+### 🎯 Action Buttons
+
+| Event Type   | Action          |
+| ------------ | --------------- |
+| Free Public  | Join instantly  |
+| Paid Public  | Pay & Join      |
+| Free Private | Request to Join |
+| Paid Private | Pay & Request   |
+
+---
+
+### 👑 Owner Controls
+
+Event owner can:
+
+* Approve requests
+* Reject requests
+* Ban participants
+* Edit event
+* Delete event
+
+---
+
+## 7. ⭐ Reviews & Ratings
+
+Users can:
+
+* Rate events
+* Write reviews
+* Edit reviews
+* Delete reviews (within allowed period)
+
+---
+
+## 8. 🧑‍💻 Dashboard
+
+### Sidebar
+
+* My Events
+* Pending Invitations
+* My Reviews
+* Settings
+
+---
+
+### 📌 My Events
+
+Users can:
+
+* Create events
+* Update events
+* Delete events
+* View participants
+* Manage approvals
+
+---
+
+### ✉️ Invitations
+
+Users can:
+
+* Accept invitation
+* Decline invitation
+* Pay & Accept (for paid events)
+
+---
+
+### ⭐ Reviews Section
+
+* View reviews
+* Edit reviews
+* Delete reviews
+
+---
+
+### ⚙️ Settings
+
+Users can update:
+
+* Profile
+* Notifications
+
+---
+
+## 9. 🏗️ Event Creation
+
+### Fields
+
+* Title
+* Date
+* Time
+* Venue
+* Description
+* Public / Private
+* Registration Fee
+
+---
+
+## 10. 🎟️ Participation Flow
+
+### Public Events
+
+* Free → Instant Join
+* Paid → Payment → Pending Approval
+
+### Private Events
+
+* Free → Request → Approval
+* Paid → Payment → Pending Approval
+
+---
+
+## 11. 💳 Payment Workflow
+
+* Payment via SSLCommerz / ShurjoPay
+* Paid participation creates **Pending Request**
+* Host must approve participation
+
+---
+
+## 12. 🔐 Core Functionalities
+
+* JWT Authentication
+* Role-Based Access Control (RBAC)
+* Event CRUD Operations
+* Participation Management
+* Invitation System
+* Payment Integration
+* Review System
+
+---
+
+## 13. ⚠️ Error Handling
+
+### Validation
+
+* Required fields
+* Email validation
+* Fee validation
+
+### Loading States
+
+* API loading
+* Payment processing
+
+### Error Messages
+
+* Invalid login
+* Payment failure
+* Unauthorized access
+
+---
+
+## 14. 📈 Future Enhancements (Optional)
+
+* Real-time notifications
+* Event analytics dashboard
+* Chat system between participants
+* QR-based event check-in
+* Mobile app version
+
+---
+
+## 15. ✅ Success Metrics
+
+* Number of events created
+* User engagement rate
+* Event participation rate
+* Payment success rate
+* Review activity
+
+---
+
+## 🧠 Summary
+
+Planora aims to be a **full-featured event ecosystem** combining:
+
+* Event discovery
+* Secure participation
+* Flexible payment handling
+* Strong admin moderation
+
+It balances **user freedom** with **system control**, making it scalable and production-ready.
+
+---
