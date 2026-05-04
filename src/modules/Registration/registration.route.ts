@@ -1,6 +1,8 @@
 import express from "express";
 import auth, { USER_ROLE } from "../../middlewares/auth";
 import { registrationController } from "./registration.controller";
+import { registrationValidation } from "./registration.validation";
+import validateRequest from "../../middlewares/validateRequest";
 
 
 

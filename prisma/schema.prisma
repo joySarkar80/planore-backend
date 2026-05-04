@@ -35,9 +35,16 @@ enum JoinStatus {
   BANNED
 }
 
-enum PaymentStatus {
+enum RegistrationPaymentStatus {
   PAID
   UNPAID
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
 }
 
 model User {
@@ -57,7 +64,8 @@ model User {
   registrations Registration[] @relation("UserRegistrations")
   invitations   Registration[] @relation("InvitedByUser")
 
-  reviews Review[]
+  reviews  Review[]
+  payments Payment[]
 
   @@map("users")
 }
@@ -84,6 +92,7 @@ model Event {
   owner         User           @relation("EventOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   registrations Registration[]
   reviews       Review[]
+  payments      Payment[]
 
   @@index([ownerId])
   @@index([status])
@@ -97,18 +106,17 @@ model Registration {
   eventId String
   userId  String
 
-  status        JoinStatus    @default(PENDING)
-  paymentStatus PaymentStatus @default(UNPAID)
-  transactionId String?
+  status        JoinStatus                @default(PENDING)
+  paymentStatus RegistrationPaymentStatus @default(UNPAID)
 
   // Invitation
   invitedById String?
 
-  // Relations (FIXED)
   user      User  @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
   invitedBy User? @relation("InvitedByUser", fields: [invitedById], references: [id])
+  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  payments Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -117,6 +125,34 @@ model Registration {
   @@index([eventId])
   @@index([userId])
   @@map("registrations")
+}
+
+model Payment {
+  id String @id @default(uuid())
+
+  userId  String
+  eventId String
+
+  registrationId String?
+
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @default("USD")
+
+  status PaymentStatus @default(PENDING)
+
+  provider        String // "stripe"
+  paymentIntentId String @unique
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration Registration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([registrationId])
 }
 
 model Review {

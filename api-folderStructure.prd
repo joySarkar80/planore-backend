@@ -236,19 +236,21 @@ Review/
 
 💳 6. Payment Module (Future-ready but keep minimal now)
 Payment/
+├── payment.interface.ts
 ├── payment.controller.ts
 ├── payment.service.ts
 ├── payment.route.ts
 └── payment.utils.ts
 
-| Method | Endpoint           | Description              | কার জন্য |
-| ------ | ------------------ | ------------------------ | -------- |
-| POST   | /payments/initiate | Start payment            | User     |
+| Method | Endpoint               | Description              | 
+| ------ | ------------------     | ------------------------ 
+| POST   | /payments/initiate     | Start payment            |     
 ---------------------------------------------------------------------
-| POST   | /payments/success  | Payment success callback | Gateway  |
+| POST   | /payments/webhook      | verify signature         |   |
 ---------------------------------------------------------------------
-| POST   | /payments/fail     | Payment fail callback    | Gateway  |
+| GET   | GET /payments/my        | user payment history     |   | Optional
 ---------------------------------------------------------------------
+| GET   | GET /payments/:id       | user payment history     |   | Optional
 
 
 📊 7. Dashboard Module (Optional but useful)

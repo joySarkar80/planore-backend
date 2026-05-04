@@ -7,8 +7,10 @@ import {
     IUpdateEvent,
     IUpdateEventStatus,
 } from "./event.interface";
-import { EventStatus, EventVisibility, Prisma } from "../../../generated/prisma/client";
+import { EventStatus, EventVisibility, Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
+// import { EventStatus, EventVisibility, Prisma } from "../../../generated/prisma/client";
+
 
 // ─────────────────────────────────────────────
 // PUBLIC ROUTES

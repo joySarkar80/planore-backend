@@ -1,9 +1,10 @@
 import AppError from "../../errors/AppError";
 import { prisma } from "../../lib/prisma";
 import httpStatus from "http-status";
-import { EventVisibility, JoinStatus, PaymentStatus } from "../../../generated/prisma/enums";
+// import { RegistrationPaymentStatus } from "@prisma/client";
+import { EventVisibility, JoinStatus, RegistrationPaymentStatus } from "@prisma/client";
 
-/** Fetch event and throw 404 if missing or not approved */
+// Fetch event and throw 404 if missing or not approved
 const findApprovedEvent = async (eventId: string) => {
     const event = await prisma.event.findUnique({ where: { id: eventId } });
 
@@ -18,7 +19,7 @@ const findApprovedEvent = async (eventId: string) => {
     return event;
 };
 
-/** Throw 409 if user already has a registration row for this event */
+// Throw 409 if user already has a registration row for this event 
 const assertNotAlreadyRegistered = async (eventId: string, userId: string) => {
     const existing = await prisma.registration.findUnique({
         where: { eventId_userId: { eventId, userId } },
@@ -29,6 +30,7 @@ const assertNotAlreadyRegistered = async (eventId: string, userId: string) => {
     }
 };
 
+// join evetn for public and private for free..
 const joinEvent = async (eventId: string, userId: string) => {
     const event = await findApprovedEvent(eventId);
     await assertNotAlreadyRegistered(eventId, userId);
@@ -53,12 +55,13 @@ const joinEvent = async (eventId: string, userId: string) => {
             eventId,
             userId,
             status: isPublic ? JoinStatus.APPROVED : JoinStatus.PENDING,
-            paymentStatus: PaymentStatus.UNPAID,
+            paymentStatus: RegistrationPaymentStatus.UNPAID,
         },
     });
 
     return registration;
 };
+
 
 export const registrationService = {
     joinEvent,
