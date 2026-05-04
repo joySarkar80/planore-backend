@@ -5,10 +5,10 @@ const inviteUserSchema = z.object({
   body: z.object({
     eventId: z
       .string({ required_error: "Event ID is required" })
-      .uuid("Invalid event ID"),
-    userId: z
-      .string({ required_error: "User ID is required" })
-      .uuid("Invalid user ID"),
+      .uuid("Invalid event ID format"), 
+    email: z
+      .string({ required_error: "Email is required" })
+      .email("Invalid email address"), 
   }),
 });
 

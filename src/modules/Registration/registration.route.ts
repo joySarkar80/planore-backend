@@ -14,4 +14,11 @@ router.post(
     registrationController.joinEventHandler
 );
 
+router.post(
+    "/invite",
+    auth(USER_ROLE.user),
+    validateRequest(registrationValidation.inviteUserSchema),
+    registrationController.inviteUserHandler
+);
+
 export const registrationRoutes = router;

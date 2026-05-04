@@ -1,7 +1,7 @@
 import AppError from "../../errors/AppError";
 import { prisma } from "../../lib/prisma";
 import httpStatus from "http-status";
-// import { RegistrationPaymentStatus } from "@prisma/client";
+
 import { EventVisibility, JoinStatus, RegistrationPaymentStatus } from "@prisma/client";
 
 // Fetch event and throw 404 if missing or not approved
@@ -62,7 +62,74 @@ const joinEvent = async (eventId: string, userId: string) => {
     return registration;
 };
 
+const inviteUser = async (ownerId: string, payload: { eventId: string; email: string }) => {
+    const { eventId, email } = payload;
+
+    // 1. event check
+    const event = await findApprovedEvent(eventId);
+
+    if (!event) {
+        throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+    }
+
+    if (event.status !== "APPROVED") {
+        throw new AppError(httpStatus.BAD_REQUEST, "Event is not approved");
+    }
+
+    // 2. ownership check
+    if (event.ownerId !== ownerId) {
+        throw new AppError(httpStatus.FORBIDDEN, "Only owner can invite");
+    }
+
+    // 3. find user by email
+    const user = await prisma.user.findUnique({
+        where: { email },
+    });
+
+    if (!user) {
+        throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    // 4. cannot invite self
+    if (user.id === ownerId) {
+        throw new AppError(httpStatus.BAD_REQUEST, "You cannot invite yourself");
+    }
+
+    try {
+        // 5. create registration (INVITED)
+        const registration = await prisma.registration.create({
+            data: {
+                eventId,
+                userId: user.id,
+                status: JoinStatus.INVITED,
+                paymentStatus: RegistrationPaymentStatus.UNPAID,
+                invitedById: ownerId,
+            },
+            include: {
+                user: {
+                    select: { id: true, name: true, email: true },
+                },
+                event: {
+                    select: { id: true, title: true },
+                },
+            },
+        });
+
+        return registration;
+    } catch (error: any) {
+        // 6. handle unique constraint (race condition safe)
+        if (error.code === "P2002") {
+            throw new AppError(
+                httpStatus.CONFLICT,
+                "User is already invited or registered for this event"
+            );
+        }
+
+        throw error;
+    }
+};
 
 export const registrationService = {
     joinEvent,
+    inviteUser
 };

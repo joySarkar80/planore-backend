@@ -20,6 +20,19 @@ const joinEventHandler = catchAsync(async (req, res) => {
     });
 });
 
+const inviteUserHandler = catchAsync(async (req, res) => {
+    const ownerId = req.user!.id;
+    const result = await registrationService.inviteUser(ownerId, req.body);
+
+    sendResponse(res, {
+        statusCode: httpStatus.CREATED,
+        success: true,
+        message: "User invited successfully",
+        data: result,
+    });
+});
+
 export const registrationController = {
     joinEventHandler,
-};  
+    inviteUserHandler
+}; 
