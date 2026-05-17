@@ -38,9 +38,11 @@ enum JoinStatus {
 enum RegistrationPaymentStatus {
   PAID
   UNPAID
+  FREE 
 }
 
 enum PaymentStatus {
+  INITIATED 
   PENDING
   SUCCESS
   FAILED
@@ -59,13 +61,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  ownedEvents Event[] @relation("EventOwner")
-
+  ownedEvents   Event[]        @relation("EventOwner")
   registrations Registration[] @relation("UserRegistrations")
   invitations   Registration[] @relation("InvitedByUser")
-
-  reviews  Review[]
-  payments Payment[]
+  reviews       Review[]
+  payments      Payment[]
 
   @@map("users")
 }
@@ -79,7 +79,7 @@ model Event {
   venue     String?
   eventLink String?
 
-  status     EventStatus     @default(PENDING)
+  status     EventStatus     @default(PENDING) 
   visibility EventVisibility @default(PUBLIC)
 
   registrationFee Decimal @default(0) @db.Decimal(10, 2)
@@ -109,7 +109,6 @@ model Registration {
   status        JoinStatus                @default(PENDING)
   paymentStatus RegistrationPaymentStatus @default(UNPAID)
 
-  // Invitation
   invitedById String?
 
   user      User  @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
@@ -136,12 +135,12 @@ model Payment {
   registrationId String?
 
   amount   Decimal @db.Decimal(10, 2)
-  currency String  @default("USD")
+  currency String  @default("BDT") 
 
-  status PaymentStatus @default(PENDING)
+  status PaymentStatus @default(INITIATED)
 
-  provider        String // "stripe"
-  paymentIntentId String @unique
+  provider      String 
+  transactionId String @unique 
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -153,6 +152,7 @@ model Payment {
   @@index([userId])
   @@index([eventId])
   @@index([registrationId])
+  @@map("payments")
 }
 
 model Review {

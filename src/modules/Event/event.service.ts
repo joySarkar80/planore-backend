@@ -19,7 +19,83 @@ import { prisma } from "../../lib/prisma";
 /**
  * Get all APPROVED public events with optional filters & pagination
  */
-const getAllPublicEvents = async (filters: IEventFilters) => {
+// const getAllPublicEvents = async (filters: IEventFilters) => {
+//     const {
+//         search,
+//         visibility,
+//         isFree,
+//         page = "1",
+//         limit = "10",
+//     } = filters;
+
+//     const pageNumber = Math.max(Number(page), 1);
+//     const limitNumber = Math.min(Math.max(Number(limit), 1), 50);
+//     const skip = (pageNumber - 1) * limitNumber;
+
+//     const where: Prisma.EventWhereInput = {
+//         status: EventStatus.APPROVED,
+//         visibility: visibility ?? EventVisibility.PUBLIC,
+//     };
+
+//     // Free / Paid filter
+//     if (isFree === "true") {
+//         where.registrationFee = { equals: new Prisma.Decimal(0) };
+//     } else if (isFree === "false") {
+//         where.registrationFee = { gt: new Prisma.Decimal(0) };
+//     }
+
+//     // Title / organizer search
+//     if (search) {
+//         where.OR = [
+//             { title: { contains: search, mode: "insensitive" } },
+//             {
+//                 owner: {
+//                     name: { contains: search, mode: "insensitive" },
+//                 },
+//             },
+//         ];
+//     }
+
+//     const [events, total] = await Promise.all([
+//         prisma.event.findMany({
+//             where,
+//             skip,
+//             take: limitNumber,
+//             orderBy: { startAt: "asc" },
+//             select: {
+//                 id: true,
+//                 title: true,
+//                 description: true,
+//                 startAt: true,
+//                 venue: true,
+//                 eventLink: true,
+//                 visibility: true,
+//                 registrationFee: true,
+//                 status: true,
+//                 createdAt: true,
+//                 owner: {
+//                     select: { id: true, name: true, avatar: true },
+//                 },
+//                 _count: {
+//                     select: { registrations: true, reviews: true },
+//                 },
+//             },
+//         }),
+//         prisma.event.count({ where }),
+//     ]);
+
+//     return {
+//         data: events,
+//         meta: {
+//             total,
+//             page: pageNumber,
+//             limit: limitNumber,
+//             totalPages: Math.ceil(total / limitNumber),
+//         },
+//     };
+// };
+
+const getAllEvents = async (filters: IEventFilters) => {
     const {
         search,
         visibility,
@@ -32,29 +108,38 @@ const getAllPublicEvents = async (filters: IEventFilters) => {
     const limitNumber = Math.min(Math.max(Number(limit), 1), 50);
     const skip = (pageNumber - 1) * limitNumber;
 
-    const where: Prisma.EventWhereInput = {
-        status: EventStatus.APPROVED,
-        visibility: visibility ?? EventVisibility.PUBLIC,
-    };
+    // রিকোয়ারমেন্ট অনুযায়ী: অ্যাডমিন দ্বারা এপ্রুভড সব ইভেন্ট দেখাবে
+    const andConditions: Prisma.EventWhereInput[] = [
+        { status: EventStatus.APPROVED }
+    ];
 
-    // Free / Paid filter
+    // Visibility Filter (Public / Private)
+    if (visibility) {
+        andConditions.push({ visibility: visibility });
+    }
+
+    // Free / Paid Filter (আপনার ৫টি ক্যাটাগরি বাটনের লজিক)
     if (isFree === "true") {
-        where.registrationFee = { equals: new Prisma.Decimal(0) };
+        andConditions.push({ registrationFee: { equals: 0 } });
     } else if (isFree === "false") {
-        where.registrationFee = { gt: new Prisma.Decimal(0) };
+        andConditions.push({ registrationFee: { gt: 0 } });
     }
 
-    // Title / organizer search
+    // Title / Organizer Search
     if (search) {
-        where.OR = [
-            { title: { contains: search, mode: "insensitive" } },
-            {
-                owner: {
-                    name: { contains: search, mode: "insensitive" },
+        andConditions.push({
+            OR: [
+                { title: { contains: search, mode: "insensitive" } },
+                {
+                    owner: {
+                        name: { contains: search, mode: "insensitive" },
+                    },
                 },
-            },
-        ];
+            ],
+        });
     }
+
+    const where: Prisma.EventWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
     const [events, total] = await Promise.all([
         prisma.event.findMany({
@@ -62,17 +147,7 @@ const getAllPublicEvents = async (filters: IEventFilters) => {
             skip,
             take: limitNumber,
             orderBy: { startAt: "asc" },
-            select: {
-                id: true,
-                title: true,
-                description: true,
-                startAt: true,
-                venue: true,
-                eventLink: true,
-                visibility: true,
-                registrationFee: true,
-                status: true,
-                createdAt: true,
+            include: { // Select এর বদলে Include ব্যবহার করা ক্লিন কোডের জন্য ভালো
                 owner: {
                     select: { id: true, name: true, avatar: true },
                 },
@@ -301,7 +376,7 @@ const adminDeleteEvent = async (eventId: string) => {
 };
 
 export const eventService = {
-    getAllPublicEvents,
+    getAllEvents,
     getEventById,
     createEvent,
     updateEvent,

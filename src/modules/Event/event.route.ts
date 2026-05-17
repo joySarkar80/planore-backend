@@ -13,7 +13,7 @@ const router = express.Router();
 // ─────────────────────────────────────────────
 
 // GET /events — browse all approved public events
-router.get("/", eventController.getAllPublicEventsHandler);
+router.get("/", eventController.getAllEventsHandler);
 
 // GET /events/my-events
 // (authenticated user's events)

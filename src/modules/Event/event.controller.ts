@@ -12,7 +12,27 @@ import { EventStatus, EventVisibility } from "../../../generated/prisma/enums";
 // PUBLIC CONTROLLERS
 // ─────────────────────────────────────────────
 
-const getAllPublicEventsHandler = catchAsync(async (req, res) => {
+// const getAllPublicEventsHandler = catchAsync(async (req, res) => {
+//     const filters: IEventFilters = {
+//         search: req.query.search as string | undefined,
+//         visibility: req.query.visibility as EventVisibility | undefined,
+//         isFree: req.query.isFree as string | undefined,
+//         page: req.query.page as string | undefined,
+//         limit: req.query.limit as string | undefined,
+//     };
+
+//     const result = await eventService.getAllPublicEvents(filters);
+
+//     sendResponse(res, {
+//         statusCode: httpStatus.OK,
+//         success: true,
+//         message: "Events retrieved successfully",
+//         data: result.data
+//     });
+// });
+
+const getAllEventsHandler = catchAsync(async (req, res) => {
+    // ফ্রন্টএন্ড থেকে আসা কুয়েরি প্যারামিটারগুলো
     const filters: IEventFilters = {
         search: req.query.search as string | undefined,
         visibility: req.query.visibility as EventVisibility | undefined,
@@ -21,12 +41,18 @@ const getAllPublicEventsHandler = catchAsync(async (req, res) => {
         limit: req.query.limit as string | undefined,
     };
 
-    const result = await eventService.getAllPublicEvents(filters);
+    const result = await eventService.getAllEvents(filters);
 
     sendResponse(res, {
-        statusCode: httpStatus.OK,
+        statusCode: 200, // httpStatus.OK
         success: true,
         message: "Events retrieved successfully",
+        meta: {
+            page: result.meta.page,
+            limit: result.meta.limit,
+            total: result.meta.total,
+            totalPage: result.meta.totalPages,
+        },
         data: result.data
     });
 });
@@ -154,7 +180,7 @@ const adminDeleteEventHandler = catchAsync(async (req, res) => {
 });
 
 export const eventController = {
-    getAllPublicEventsHandler,
+    getAllEventsHandler,
     getEventByIdHandler,
     createEventHandler,
     updateEventHandler,
