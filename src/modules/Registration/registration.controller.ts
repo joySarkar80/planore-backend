@@ -13,12 +13,27 @@ const joinEventHandler = catchAsync(async (req, res) => {
         statusCode: httpStatus.CREATED,
         success: true,
         message:
-            result.status === "APPROVED"
+            result.registration.status === "APPROVED"
                 ? "Joined event successfully"
                 : "Join request submitted. Awaiting owner approval.",
         data: result,
     });
 });
+
+const payForApprovedPrivateEventHandler = catchAsync(async (req, res) => {
+    const userId = req.user!.id;
+    const { eventId } = req.params;
+
+    const result = await registrationService.payForApprovedPrivateEvent(eventId as string, userId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Checkout session created successfully",
+        data: result,
+    });
+});
+
 
 const inviteUserHandler = catchAsync(async (req, res) => {
     const ownerId = req.user!.id;
@@ -34,5 +49,6 @@ const inviteUserHandler = catchAsync(async (req, res) => {
 
 export const registrationController = {
     joinEventHandler,
-    inviteUserHandler
+    inviteUserHandler,
+    payForApprovedPrivateEventHandler
 }; 

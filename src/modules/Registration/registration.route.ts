@@ -21,4 +21,10 @@ router.post(
     registrationController.inviteUserHandler
 );
 
+router.post(
+    "/pay/:eventId",
+    auth(USER_ROLE.user),
+    registrationController.payForApprovedPrivateEventHandler
+);
+
 export const registrationRoutes = router;

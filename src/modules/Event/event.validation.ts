@@ -32,7 +32,10 @@ const createEventSchema = z.object({
             .number()
             .min(0, "Registration fee cannot be negative")
             .optional()
-            .default(0),
+            .default(0)
+            .refine(val => val === 0 || val >= 0.50, {
+                message: "Paid events must have a minimum fee of 0.50",
+            }),
     }),
 });
 

@@ -2,6 +2,9 @@ import { Server } from 'http';
 import app from './app';
 import config from './config';
 import { prisma } from './lib/prisma';
+import dns from 'dns';
+
+dns.setDefaultResultOrder('ipv4first');
 
 let server: Server;
 

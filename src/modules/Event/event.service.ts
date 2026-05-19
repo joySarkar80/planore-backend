@@ -197,9 +197,9 @@ const getEventById = async (id: string) => {
     }
 
     // Public users can only see APPROVED events
-    if (event.status !== EventStatus.APPROVED) {
-        throw new AppError(httpStatus.NOT_FOUND, "Event not found");
-    }
+    // if (event.status !== EventStatus.APPROVED) {
+    //     throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+    // }
 
     return event;
 };
