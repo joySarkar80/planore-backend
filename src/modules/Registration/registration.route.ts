@@ -8,6 +8,18 @@ import validateRequest from "../../middlewares/validateRequest";
 
 const router = express.Router();
 
+router.get(
+    "/search-users",
+    auth(USER_ROLE.user),
+    registrationController.searchUsersForInvitationHandler
+);
+
+router.get(
+    "/invited",
+    auth(USER_ROLE.user),
+    registrationController.getInvitedUsersByEventHandler
+);
+
 router.post(
     "/join/:eventId",
     auth(USER_ROLE.user),

@@ -31,7 +31,6 @@ const assertNotAlreadyRegistered = async (eventId: string, userId: string) => {
     }
 };
 
-
 const joinEvent = async (eventId: string, userId: string) => {
     const event = await findApprovedEvent(eventId);
 
@@ -43,30 +42,63 @@ const joinEvent = async (eventId: string, userId: string) => {
     });
 
     if (existingRegistration) {
-        if (
-            existingRegistration.paymentStatus === RegistrationPaymentStatus.PAID ||
-            existingRegistration.paymentStatus === RegistrationPaymentStatus.FREE
-        ) {
-            throw new AppError(httpStatus.BAD_REQUEST, "You have already registered for this event.");
-        }
-
         const isFree = Number(event.registrationFee) === 0;
         const isPublic = event.visibility === EventVisibility.PUBLIC;
+        const { status, paymentStatus } = existingRegistration;
 
+        // ১. Public Paid
         if (isPublic && !isFree) {
-            const stripeSession = await paymentService.createCheckoutSession({
-                eventId: event.id,
-                eventTitle: event.title,
-                registrationId: existingRegistration.id,
-                userId,
-                amount: Number(event.registrationFee),
-                userEmail: existingRegistration.user.email,
-            });
-
-            return { registration: existingRegistration, checkoutUrl: stripeSession.url };
+            if (paymentStatus === RegistrationPaymentStatus.UNPAID) {
+                const stripeSession = await paymentService.createCheckoutSession({
+                    eventId: event.id,
+                    eventTitle: event.title,
+                    registrationId: existingRegistration.id,
+                    userId,
+                    amount: Number(event.registrationFee),
+                    userEmail: existingRegistration.user.email,
+                });
+                return { registration: existingRegistration, checkoutUrl: stripeSession.url };
+            }
+            else if (paymentStatus === RegistrationPaymentStatus.PAID && status === JoinStatus.PENDING) {
+                throw new AppError(httpStatus.BAD_REQUEST, "You have already registered please wait for owner approval.");
+            }
+            else if (paymentStatus === RegistrationPaymentStatus.PAID && status === JoinStatus.APPROVED) {
+                throw new AppError(httpStatus.BAD_REQUEST, "You have already registered!!");
+            }
         }
 
-        throw new AppError(httpStatus.BAD_REQUEST, "You have a pending registration request for this event.");
+        // ২. Private Free
+        else if (!isPublic && isFree) {
+            if (status === JoinStatus.PENDING) {
+                throw new AppError(httpStatus.BAD_REQUEST, "You have already registered please wait for owner approval.");
+            }
+            else if (status === JoinStatus.APPROVED) {
+                throw new AppError(httpStatus.BAD_REQUEST, "You have already registered!!");
+            }
+        }
+
+        // ৩. Private Paid
+        else if (!isPublic && !isFree) {
+            if (status === JoinStatus.PENDING && paymentStatus === RegistrationPaymentStatus.UNPAID) {
+                throw new AppError(httpStatus.BAD_REQUEST, "You have already registered for this event. Please wait for event owner approval. Then make payment from the join event page. Dashboard -> then click join events.");
+            }
+            else if (status === JoinStatus.APPROVED && paymentStatus === RegistrationPaymentStatus.UNPAID) {
+                throw new AppError(httpStatus.BAD_REQUEST, "You have already registered please pay from join events page. Dashboard -> then click join events.");
+            }
+            else if (paymentStatus === RegistrationPaymentStatus.PAID) {
+                // পেমেন্ট কমপ্লিট হয়ে গেলে
+                throw new AppError(httpStatus.BAD_REQUEST, "You have already registered for this event!!");
+            }
+        }
+
+        // ৪. Public Free
+        else if (isPublic && isFree) {
+            if (status === JoinStatus.APPROVED) {
+                throw new AppError(httpStatus.BAD_REQUEST, "You have already registered!!");
+            }
+        }
+
+        throw new AppError(httpStatus.BAD_REQUEST, "You have already registered for this event.");
     }
 
     if (event.ownerId === userId) {
@@ -212,8 +244,99 @@ const inviteUser = async (ownerId: string, payload: { eventId: string; email: st
     }
 };
 
+const searchUsersForInvitation = async (ownerId: string, query: string, eventId: string) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+    });
+
+    if (!event) {
+        throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+    }
+
+    if (event.ownerId !== ownerId) {
+        throw new AppError(httpStatus.FORBIDDEN, "Only the event owner can search users for invitation");
+    }
+
+    const users = await prisma.user.findMany({
+        where: {
+            id: { not: ownerId },
+            OR: [
+                { name: { contains: query, mode: "insensitive" } },
+                { email: { contains: query, mode: "insensitive" } },
+            ],
+        },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
+            registrations: {
+                where: {
+                    eventId: eventId,
+                },
+                select: {
+                    id: true,
+                    status: true,
+                },
+            },
+        },
+    });
+
+    const formattedUsers = users.map((user) => {
+        const registration = user.registrations[0];
+
+        return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar,
+            registrationStatus: registration?.status || null,
+        };
+    });
+
+    return formattedUsers;
+};
+
+const getInvitedUsersByEvent = async (ownerId: string, eventId: string) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+    });
+
+    if (!event) {
+        throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+    }
+
+    if (event.ownerId !== ownerId) {
+        throw new AppError(httpStatus.FORBIDDEN, "Only the event owner can view the invited guest list");
+    }
+
+    const invitations = await prisma.registration.findMany({
+        where: {
+            eventId: eventId,
+            invitedById: ownerId,
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    avatar: true,
+                },
+            },
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+
+    return invitations;
+};
+
 export const registrationService = {
     joinEvent,
     inviteUser,
-    payForApprovedPrivateEvent
+    payForApprovedPrivateEvent,
+    searchUsersForInvitation,
+    getInvitedUsersByEvent, 
 };

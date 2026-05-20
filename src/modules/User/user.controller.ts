@@ -31,7 +31,7 @@ const findUserByIdHandler = catchAsync(async (req, res) => {
 });
 
 const updateUserByIdHandler = catchAsync(async (req, res) => {
-    const id = req.user.id;
+    const id = req.user?.id;
     const result = await UserService.updateUserById(id as string, req.body);
 
     sendResponse(res, {

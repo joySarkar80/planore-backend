@@ -9,91 +9,6 @@ import {
 } from "./event.interface";
 import { EventStatus, EventVisibility, Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-// import { EventStatus, EventVisibility, Prisma } from "../../../generated/prisma/client";
-
-
-// ─────────────────────────────────────────────
-// PUBLIC ROUTES
-// ─────────────────────────────────────────────
-
-/**
- * Get all APPROVED public events with optional filters & pagination
- */
-// const getAllPublicEvents = async (filters: IEventFilters) => {
-//     const {
-//         search,
-//         visibility,
-//         isFree,
-//         page = "1",
-//         limit = "10",
-//     } = filters;
-
-//     const pageNumber = Math.max(Number(page), 1);
-//     const limitNumber = Math.min(Math.max(Number(limit), 1), 50);
-//     const skip = (pageNumber - 1) * limitNumber;
-
-//     const where: Prisma.EventWhereInput = {
-//         status: EventStatus.APPROVED,
-//         visibility: visibility ?? EventVisibility.PUBLIC,
-//     };
-
-//     // Free / Paid filter
-//     if (isFree === "true") {
-//         where.registrationFee = { equals: new Prisma.Decimal(0) };
-//     } else if (isFree === "false") {
-//         where.registrationFee = { gt: new Prisma.Decimal(0) };
-//     }
-
-//     // Title / organizer search
-//     if (search) {
-//         where.OR = [
-//             { title: { contains: search, mode: "insensitive" } },
-//             {
-//                 owner: {
-//                     name: { contains: search, mode: "insensitive" },
-//                 },
-//             },
-//         ];
-//     }
-
-//     const [events, total] = await Promise.all([
-//         prisma.event.findMany({
-//             where,
-//             skip,
-//             take: limitNumber,
-//             orderBy: { startAt: "asc" },
-//             select: {
-//                 id: true,
-//                 title: true,
-//                 description: true,
-//                 startAt: true,
-//                 venue: true,
-//                 eventLink: true,
-//                 visibility: true,
-//                 registrationFee: true,
-//                 status: true,
-//                 createdAt: true,
-//                 owner: {
-//                     select: { id: true, name: true, avatar: true },
-//                 },
-//                 _count: {
-//                     select: { registrations: true, reviews: true },
-//                 },
-//             },
-//         }),
-//         prisma.event.count({ where }),
-//     ]);
-
-//     return {
-//         data: events,
-//         meta: {
-//             total,
-//             page: pageNumber,
-//             limit: limitNumber,
-//             totalPages: Math.ceil(total / limitNumber),
-//         },
-//     };
-// };
 
 const getAllEvents = async (filters: IEventFilters) => {
     const {
@@ -187,7 +102,16 @@ const getEventById = async (id: string) => {
                 orderBy: { createdAt: "desc" },
             },
             _count: {
-                select: { registrations: true },
+                select: {
+                    registrations: {
+                        where: {
+                            status: 'APPROVED',
+                            paymentStatus: {
+                                in: ['PAID', 'FREE']
+                            }
+                        }
+                    }
+                },
             },
         },
     });
@@ -195,11 +119,6 @@ const getEventById = async (id: string) => {
     if (!event) {
         throw new AppError(httpStatus.NOT_FOUND, "Event not found");
     }
-
-    // Public users can only see APPROVED events
-    // if (event.status !== EventStatus.APPROVED) {
-    //     throw new AppError(httpStatus.NOT_FOUND, "Event not found");
-    // }
 
     return event;
 };

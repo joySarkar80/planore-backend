@@ -2,7 +2,7 @@ import httpStatus from 'http-status';
 import { prisma } from '../../lib/prisma';
 import { UserSearchableFields } from './user.constant';
 import bcryptJs from 'bcryptjs';
-import { Prisma } from '../../../generated/prisma/client';
+import { Prisma } from '@prisma/client';
 import AppError from '../../errors/AppError';
 import { USER_ROLE } from '../../middlewares/auth';
 

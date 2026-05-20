@@ -1,4 +1,3 @@
-import { Request, Response } from "express";
 import httpStatus from "http-status";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
@@ -6,33 +5,8 @@ import AppError from "../../errors/AppError";
 import { eventService } from "./event.service";
 import { IEventFilters } from "./event.interface";
 import { EventStatus, EventVisibility } from "../../../generated/prisma/enums";
-// import { EventVisibility, EventStatus } from "@prisma/client";
-
-// ─────────────────────────────────────────────
-// PUBLIC CONTROLLERS
-// ─────────────────────────────────────────────
-
-// const getAllPublicEventsHandler = catchAsync(async (req, res) => {
-//     const filters: IEventFilters = {
-//         search: req.query.search as string | undefined,
-//         visibility: req.query.visibility as EventVisibility | undefined,
-//         isFree: req.query.isFree as string | undefined,
-//         page: req.query.page as string | undefined,
-//         limit: req.query.limit as string | undefined,
-//     };
-
-//     const result = await eventService.getAllPublicEvents(filters);
-
-//     sendResponse(res, {
-//         statusCode: httpStatus.OK,
-//         success: true,
-//         message: "Events retrieved successfully",
-//         data: result.data
-//     });
-// });
 
 const getAllEventsHandler = catchAsync(async (req, res) => {
-    // ফ্রন্টএন্ড থেকে আসা কুয়েরি প্যারামিটারগুলো
     const filters: IEventFilters = {
         search: req.query.search as string | undefined,
         visibility: req.query.visibility as EventVisibility | undefined,

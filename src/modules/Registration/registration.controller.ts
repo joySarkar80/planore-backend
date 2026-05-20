@@ -1,3 +1,4 @@
+import AppError from "../../errors/AppError";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { registrationService } from "./registration.service";
@@ -47,8 +48,53 @@ const inviteUserHandler = catchAsync(async (req, res) => {
     });
 });
 
+const searchUsersForInvitationHandler = catchAsync(async (req, res) => {
+    const ownerId = req.user!.id;
+    const { query, eventId } = req.query;
+
+    if (!query || !eventId) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Query string and eventId are required parameters");
+    }
+
+    const result = await registrationService.searchUsersForInvitation(
+        ownerId,
+        query as string,
+        eventId as string
+    );
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Users fetched successfully for invitation",
+        data: result,
+    });
+});
+
+const getInvitedUsersByEventHandler = catchAsync(async (req, res) => {
+    const ownerId = req.user!.id;
+    const { eventId } = req.query;
+
+    if (!eventId) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Event ID is required as a query parameter");
+    }
+
+    const result = await registrationService.getInvitedUsersByEvent(
+        ownerId,
+        eventId as string
+    );
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Invited guest list retrieved successfully",
+        data: result,
+    });
+});
+
 export const registrationController = {
     joinEventHandler,
     inviteUserHandler,
-    payForApprovedPrivateEventHandler
+    payForApprovedPrivateEventHandler,
+    searchUsersForInvitationHandler,
+    getInvitedUsersByEventHandler,
 }; 

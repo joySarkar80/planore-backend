@@ -8,10 +8,6 @@ import { eventValidation } from "./event.validation";
 
 const router = express.Router();
 
-// ─────────────────────────────────────────────
-// PUBLIC ROUTES — no auth required
-// ─────────────────────────────────────────────
-
 // GET /events — browse all approved public events
 router.get("/", eventController.getAllEventsHandler);
 
@@ -25,10 +21,6 @@ router.get(
 
 // GET /events/:id — single event details
 router.get("/:id", eventController.getEventByIdHandler);
-
-// ─────────────────────────────────────────────
-// USER ROUTES — requires USER or ADMIN role
-// ─────────────────────────────────────────────
 
 // POST /events — create a new event
 router.post(
@@ -53,11 +45,6 @@ router.delete(
     eventController.deleteEventHandler
 );
 
-// ─────────────────────────────────────────────
-// ADMIN ROUTES — requires ADMIN role only
-// ─────────────────────────────────────────────
-
-// PATCH /events/status/:id — approve or reject an event
 router.patch(
     "/status/:id",
     auth(USER_ROLE.admin),
