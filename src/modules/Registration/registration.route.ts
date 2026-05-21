@@ -6,23 +6,10 @@ import validateRequest from "../../middlewares/validateRequest";
 
 const router = express.Router();
 
-router.get(
-    "/participants",
-    auth(USER_ROLE.user),
-    registrationController.getEventParticipantsHandler
-);
-
-router.get(
-    "/search-users",
-    auth(USER_ROLE.user),
-    registrationController.searchUsersForInvitationHandler
-);
-
-router.get(
-    "/invited",
-    auth(USER_ROLE.user),
-    registrationController.getInvitedUsersByEventHandler
-);
+router.get('/my-joined-events', auth(USER_ROLE.user), registrationController.getJoinedEventsHandler);
+router.get("/participants", auth(USER_ROLE.user), registrationController.getEventParticipantsHandler);
+router.get("/search-users", auth(USER_ROLE.user), registrationController.searchUsersForInvitationHandler);
+router.get("/invited", auth(USER_ROLE.user), registrationController.getInvitedUsersByEventHandler);
 
 router.post(
     "/invite",

@@ -1,7 +1,7 @@
 import AppError from "../../errors/AppError";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
-import { registrationService } from "./registration.service";
+import { getJoinedEventsForUser, registrationService } from "./registration.service";
 import httpStatus from "http-status";
 
 const joinEventHandler = catchAsync(async (req, res) => {
@@ -128,6 +128,19 @@ const updateParticipantStatusHandler = catchAsync(async (req, res) => {
     });
 });
 
+const getJoinedEventsHandler = catchAsync(async (req, res) => {
+    const userId = req.user?.id; // From auth middleware
+
+    const result = await registrationService.getJoinedEventsForUser(userId as string);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Joined events retrieved successfully',
+        data: result,
+    });
+});
+
 export const registrationController = {
     joinEventHandler,
     inviteUserHandler,
@@ -136,4 +149,5 @@ export const registrationController = {
     getInvitedUsersByEventHandler,
     getEventParticipantsHandler,
     updateParticipantStatusHandler,
+    getJoinedEventsHandler
 }; 

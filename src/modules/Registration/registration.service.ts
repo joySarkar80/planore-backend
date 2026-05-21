@@ -346,7 +346,7 @@ const getEventParticipants = async (ownerId: string, eventId: string) => {
         throw new AppError(httpStatus.FORBIDDEN, "You do not have permission to manage this event's participants");
     }
 
-    
+
     const participants = await prisma.registration.findMany({
         where: { eventId },
         include: {
@@ -372,7 +372,7 @@ const updateParticipantStatus = async (
     registrationId: string,
     status: JoinStatus
 ) => {
-    
+
     const registration = await prisma.registration.findUnique({
         where: { id: registrationId },
         include: { event: true }
@@ -386,7 +386,7 @@ const updateParticipantStatus = async (
         throw new AppError(httpStatus.FORBIDDEN, "Access denied. Only event host can update status");
     }
 
-    
+
     const updatedRegistration = await prisma.registration.update({
         where: { id: registrationId },
         data: { status },
@@ -404,6 +404,34 @@ const updateParticipantStatus = async (
     return updatedRegistration;
 };
 
+
+export const getJoinedEventsForUser = async (userId: string) => {
+    const joinedRegistrations = await prisma.registration.findMany({
+        where: {
+            userId: userId,
+            status: {
+                notIn: [JoinStatus.INVITED, JoinStatus.REJECTED]
+            }
+        },
+        include: {
+            event: {
+                include: {
+                    reviews: {
+                        where: {
+                            userId: userId
+                        }
+                    }
+                }
+            }
+        },
+        orderBy: {
+            createdAt: 'desc'
+        }
+    });
+
+    return joinedRegistrations;
+};
+
 export const registrationService = {
     joinEvent,
     inviteUser,
@@ -412,4 +440,5 @@ export const registrationService = {
     getInvitedUsersByEvent,
     getEventParticipants,
     updateParticipantStatus,
+    getJoinedEventsForUser,
 };
