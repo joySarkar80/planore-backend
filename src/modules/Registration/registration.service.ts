@@ -333,10 +333,83 @@ const getInvitedUsersByEvent = async (ownerId: string, eventId: string) => {
     return invitations;
 };
 
+const getEventParticipants = async (ownerId: string, eventId: string) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+    });
+
+    if (!event) {
+        throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+    }
+
+    if (event.ownerId !== ownerId) {
+        throw new AppError(httpStatus.FORBIDDEN, "You do not have permission to manage this event's participants");
+    }
+
+    
+    const participants = await prisma.registration.findMany({
+        where: { eventId },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    avatar: true,
+                },
+            },
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+
+    return participants;
+};
+
+const updateParticipantStatus = async (
+    ownerId: string,
+    registrationId: string,
+    status: JoinStatus
+) => {
+    
+    const registration = await prisma.registration.findUnique({
+        where: { id: registrationId },
+        include: { event: true }
+    });
+
+    if (!registration) {
+        throw new AppError(httpStatus.NOT_FOUND, "Registration record not found");
+    }
+
+    if (registration.event.ownerId !== ownerId) {
+        throw new AppError(httpStatus.FORBIDDEN, "Access denied. Only event host can update status");
+    }
+
+    
+    const updatedRegistration = await prisma.registration.update({
+        where: { id: registrationId },
+        data: { status },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                }
+            }
+        }
+    });
+
+    return updatedRegistration;
+};
+
 export const registrationService = {
     joinEvent,
     inviteUser,
     payForApprovedPrivateEvent,
     searchUsersForInvitation,
-    getInvitedUsersByEvent, 
+    getInvitedUsersByEvent,
+    getEventParticipants,
+    updateParticipantStatus,
 };

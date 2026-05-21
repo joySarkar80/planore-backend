@@ -91,10 +91,49 @@ const getInvitedUsersByEventHandler = catchAsync(async (req, res) => {
     });
 });
 
+const getEventParticipantsHandler = catchAsync(async (req, res) => {
+    const ownerId = req.user!.id;
+    const { eventId } = req.query;
+
+    if (!eventId) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Event ID is required");
+    }
+
+    const result = await registrationService.getEventParticipants(ownerId, eventId as string);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Participants list retrieved successfully",
+        data: result,
+    });
+});
+
+const updateParticipantStatusHandler = catchAsync(async (req, res) => {
+    const ownerId = req.user!.id;
+    const { id } = req.params; // registrationId
+    const { status } = req.body;
+
+    if (!status) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Status is required in request body");
+    }
+
+    const result = await registrationService.updateParticipantStatus(ownerId, id as string, status);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: `Participant status updated to ${status} successfully`,
+        data: result,
+    });
+});
+
 export const registrationController = {
     joinEventHandler,
     inviteUserHandler,
     payForApprovedPrivateEventHandler,
     searchUsersForInvitationHandler,
     getInvitedUsersByEventHandler,
+    getEventParticipantsHandler,
+    updateParticipantStatusHandler,
 }; 
