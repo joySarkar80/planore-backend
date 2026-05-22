@@ -46,9 +46,8 @@ const joinEvent = async (eventId: string, userId: string) => {
         const isPublic = event.visibility === EventVisibility.PUBLIC;
         const { status, paymentStatus } = existingRegistration;
 
-        // ১. Public Paid
         if (isPublic && !isFree) {
-            if (paymentStatus === RegistrationPaymentStatus.UNPAID) {
+            if (paymentStatus === RegistrationPaymentStatus.UNPAID && status === JoinStatus.PENDING) {
                 const stripeSession = await paymentService.createCheckoutSession({
                     eventId: event.id,
                     eventTitle: event.title,
@@ -56,6 +55,8 @@ const joinEvent = async (eventId: string, userId: string) => {
                     userId,
                     amount: Number(event.registrationFee),
                     userEmail: existingRegistration.user.email,
+                    successUrl: `${process.env.FRONTEND_URL}/dashboard/joined-events?payment=success`,
+                    cancelUrl: `${process.env.FRONTEND_URL}/events/${event.id}?status=cancel`,
                 });
                 return { registration: existingRegistration, checkoutUrl: stripeSession.url };
             }
@@ -86,7 +87,6 @@ const joinEvent = async (eventId: string, userId: string) => {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered please pay from join events page. Dashboard -> then click join events.");
             }
             else if (paymentStatus === RegistrationPaymentStatus.PAID) {
-                // পেমেন্ট কমপ্লিট হয়ে গেলে
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered for this event!!");
             }
         }
@@ -145,6 +145,8 @@ const joinEvent = async (eventId: string, userId: string) => {
                 userId,
                 amount: Number(event.registrationFee),
                 userEmail: registration.user.email,
+                successUrl: `${process.env.FRONTEND_URL}/dashboard/joined-events?payment=success`,
+                cancelUrl: `${process.env.FRONTEND_URL}/events/${event.id}?status=cancel`,
             }, tx);
 
             checkoutUrl = stripeSession.url;
@@ -162,7 +164,7 @@ const payForApprovedPrivateEvent = async (eventId: string, userId: string) => {
 
     if (!registration) throw new AppError(httpStatus.NOT_FOUND, "Registration record not found");
     if (registration.status !== JoinStatus.APPROVED) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Your request is not approved yet by the host");
+        throw new AppError(httpStatus.BAD_REQUEST, "You cannot pay for this event until it is approved by the event owner");
     }
     if (registration.paymentStatus === RegistrationPaymentStatus.PAID) {
         throw new AppError(httpStatus.BAD_REQUEST, "You have already paid for this event");
@@ -175,6 +177,8 @@ const payForApprovedPrivateEvent = async (eventId: string, userId: string) => {
         userId,
         amount: Number(registration.event.registrationFee),
         userEmail: registration.user.email,
+        successUrl: `${process.env.FRONTEND_URL}/dashboard/joined-events?payment=success`,
+        cancelUrl: `${process.env.FRONTEND_URL}/dashboard/joined-events?payment=cancel`,
     });
 
     return { checkoutUrl: stripeSession.url };
@@ -212,13 +216,19 @@ const inviteUser = async (ownerId: string, payload: { eventId: string; email: st
         throw new AppError(httpStatus.BAD_REQUEST, "You cannot invite yourself");
     }
 
+    // Conditional payment status logic based on fee (0 means free)
+    const isFree = Number(event.registrationFee) === 0;
+    const paymentStatus = isFree
+        ? RegistrationPaymentStatus.FREE
+        : RegistrationPaymentStatus.UNPAID;
+
     try {
         const registration = await prisma.registration.create({
             data: {
                 eventId,
                 userId: user.id,
                 status: JoinStatus.INVITED,
-                paymentStatus: RegistrationPaymentStatus.UNPAID,
+                paymentStatus: paymentStatus, // Applied conditional logic here
                 invitedById: ownerId,
             },
             include: {
@@ -243,6 +253,7 @@ const inviteUser = async (ownerId: string, payload: { eventId: string; email: st
         throw error;
     }
 };
+
 
 const searchUsersForInvitation = async (ownerId: string, query: string, eventId: string) => {
     const event = await prisma.event.findUnique({
@@ -411,6 +422,12 @@ export const getJoinedEventsForUser = async (userId: string) => {
             userId: userId,
             status: {
                 notIn: [JoinStatus.INVITED, JoinStatus.REJECTED]
+            },
+            NOT: {
+                paymentStatus: RegistrationPaymentStatus.UNPAID,
+                event: {
+                    visibility: EventVisibility.PUBLIC
+                }
             }
         },
         include: {
@@ -419,7 +436,8 @@ export const getJoinedEventsForUser = async (userId: string) => {
                     reviews: {
                         where: {
                             userId: userId
-                        }
+                        },
+                        take: 1
                     }
                 }
             }
@@ -431,6 +449,7 @@ export const getJoinedEventsForUser = async (userId: string) => {
 
     return joinedRegistrations;
 };
+
 
 export const registrationService = {
     joinEvent,

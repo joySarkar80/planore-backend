@@ -4,6 +4,8 @@ import { UserRoutes } from "../modules/User/user.route";
 import { EventRoutes } from "../modules/Event/event.route";
 import { registrationRoutes } from "../modules/Registration/registration.route";
 import { PaymentRoutes } from "../modules/Payment/payment.route";
+import { ReviewRoutes } from "../modules/Review/review.route";
+import { InvititionRoutes } from "../modules/Invitition/invitition.route";
 
 const router = Router();
 
@@ -27,6 +29,14 @@ const moduleRoutes: { path: string; route: Router }[] = [
     {
         path: '/payments',
         route: PaymentRoutes
+    },
+    {
+        path: '/reviews',
+        route: ReviewRoutes
+    },
+    {
+        path: '/invitations',
+        route: InvititionRoutes
     }
 
 ];

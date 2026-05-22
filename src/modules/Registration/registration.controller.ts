@@ -1,7 +1,7 @@
 import AppError from "../../errors/AppError";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
-import { getJoinedEventsForUser, registrationService } from "./registration.service";
+import { registrationService } from "./registration.service";
 import httpStatus from "http-status";
 
 const joinEventHandler = catchAsync(async (req, res) => {
