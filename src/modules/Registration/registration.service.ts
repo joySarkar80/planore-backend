@@ -420,9 +420,9 @@ export const getJoinedEventsForUser = async (userId: string) => {
     const joinedRegistrations = await prisma.registration.findMany({
         where: {
             userId: userId,
-            status: {
-                notIn: [JoinStatus.INVITED, JoinStatus.REJECTED]
-            },
+            // status: {
+            //     notIn: [JoinStatus.INVITED, JoinStatus.REJECTED]
+            // },
             NOT: {
                 paymentStatus: RegistrationPaymentStatus.UNPAID,
                 event: {
