@@ -2,15 +2,18 @@ import express from 'express';
 import validateRequest from '../../middlewares/validateRequest';
 import { UserController } from './user.controller';
 import {
-    createUserValidationSchema,
     updateUserValidationSchema,
 } from './user.validation';
 import auth, { USER_ROLE } from '../../middlewares/auth';
 
-
 const router = express.Router();
 
-// Specific Routes 
+// ==========================================
+// 1. STATIC / SPECIFIC ROUTES 
+// ==========================================
+
+router.get('/all', auth(USER_ROLE.admin), UserController.adminGetAllUsersHandler);
+
 router.patch(
     '/me',
     auth(USER_ROLE.user),
@@ -18,17 +21,27 @@ router.patch(
     UserController.updateUserByIdHandler,
 );
 
-// General Resource Routes
-router.get('/', auth(USER_ROLE.admin), UserController.getAllUsersHandler);
 
+// ==========================================
+// 2. DYNAMIC ROUTES 
+// ==========================================
 
-// Dynamic routes
+router.patch(
+    '/:userId/status',
+    auth(USER_ROLE.admin),
+    UserController.updateUserStatusHandler
+);
+
 router.get(
     '/:id',
     auth(USER_ROLE.admin, USER_ROLE.user),
     UserController.findUserByIdHandler,
 );
 
-router.delete('/:id', auth(USER_ROLE.admin), UserController.deleteUserByIdHandler);
+router.delete(
+    '/:id',
+    auth(USER_ROLE.admin),
+    UserController.deleteUserByIdHandler
+);
 
 export const UserRoutes = router;

@@ -2,7 +2,7 @@ import httpStatus from 'http-status';
 import { prisma } from '../../lib/prisma';
 import { UserSearchableFields } from './user.constant';
 import bcryptJs from 'bcryptjs';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserStatus } from '@prisma/client';
 import AppError from '../../errors/AppError';
 import { USER_ROLE } from '../../middlewares/auth';
 
@@ -15,60 +15,52 @@ export type TUserPayload = {
     rating?: number;
 };
 
-const getAllUsers = async (query: Record<string, unknown>) => {
+const adminGetAllUsers = async (
+    currentAdminId: string,
+    query: Record<string, unknown>
+) => {
     const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 10;
+    const limit = Number(query.limit) || 20;
     const skip = (page - 1) * limit;
     const searchTerm = query.searchTerm as string | undefined;
-    const sortBy = (query.sortBy as string) || 'createdAt';
-    const sortOrder = (query.sortOrder as 'asc' | 'desc') || 'desc';
 
-    // Build where clause
-    const whereConditions: Prisma.UserWhereInput[] = [];
+    // Admin cannot see themselves in the list
+    const whereConditions: Prisma.UserWhereInput[] = [
+        { id: { not: currentAdminId } },
+    ];
 
-    // Search functionality
     if (searchTerm) {
         whereConditions.push({
-            OR: UserSearchableFields.map((field) => ({
-                [field]: {
-                    contains: searchTerm,
-                    mode: 'insensitive' as Prisma.QueryMode,
-                },
-            })),
+            OR: [
+                { name: { contains: searchTerm, mode: 'insensitive' } },
+                { email: { contains: searchTerm, mode: 'insensitive' } },
+            ],
         });
     }
 
-    // Filter by other fields (excluding pagination & search params)
-    const excludeFields = ['searchTerm', 'page', 'limit', 'sortBy', 'sortOrder', 'fields'];
-    const filterData = Object.fromEntries(
-        Object.entries(query).filter(([key]) => !excludeFields.includes(key)),
-    );
+    const where: Prisma.UserWhereInput = { AND: whereConditions };
 
-    if (Object.keys(filterData).length > 0) {
-        whereConditions.push(filterData as Prisma.UserWhereInput);
-    }
-
-    const whereClause: Prisma.UserWhereInput =
-        whereConditions.length > 0 ? { AND: whereConditions } : {};
-
-    // Execute query
     const [result, total] = await Promise.all([
         prisma.user.findMany({
-            where: whereClause,
+            where,
             skip,
             take: limit,
-            orderBy: { [sortBy]: sortOrder },
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                status: true,
+                avatar: true,
+                createdAt: true,
+            },
         }),
-        prisma.user.count({ where: whereClause }),
+        prisma.user.count({ where }),
     ]);
 
     return {
-        meta: {
-            page,
-            limit,
-            total,
-            totalPage: Math.ceil(total / limit),
-        },
+        meta: { page, limit, total, totalPage: Math.ceil(total / limit) },
         data: result,
     };
 };
@@ -93,7 +85,7 @@ const findUserById = async (userId: string, currentUser: any) => {
 };
 
 
-
+// update users profile
 const updateUserById = async (userId: string, payload: Partial<TUserPayload>) => {
     const result = await prisma.user.update({
         where: { id: userId },
@@ -110,6 +102,17 @@ const updateUserById = async (userId: string, payload: Partial<TUserPayload>) =>
     return result;
 };
 
+const updateUserStatus = async (userId: string, status: UserStatus) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+
+    return prisma.user.update({
+        where: { id: userId },
+        data: { status },
+        select: { id: true, name: true, email: true, role: true, status: true },
+    });
+};
+
 const deleteUserById = async (userId: string) => {
     const result = await prisma.user.delete({
         where: { id: userId },
@@ -123,8 +126,9 @@ const deleteUserById = async (userId: string) => {
 };
 
 export const UserService = {
+    adminGetAllUsers,
     findUserById,
-    getAllUsers,
     updateUserById,
+    updateUserStatus,
     deleteUserById,
 };

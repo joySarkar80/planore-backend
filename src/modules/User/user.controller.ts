@@ -4,15 +4,14 @@ import sendResponse from '../../utils/sendResponse';
 import { UserService } from './user.service';
 
 
-const getAllUsersHandler = catchAsync(async (req, res) => {
-    const result = await UserService.getAllUsers(req.query);
-
+const adminGetAllUsersHandler = catchAsync(async (req, res) => {
+    const currentAdminId = (req as any).user.id;
+    const result = await UserService.adminGetAllUsers(currentAdminId, req.query);
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: 'Users are retrieved succesfully',
-        meta: result.meta,
-        data: result.data,
+        message: 'Users fetched successfully',
+        data: result,
     });
 });
 
@@ -30,6 +29,7 @@ const findUserByIdHandler = catchAsync(async (req, res) => {
     });
 });
 
+// update users profile
 const updateUserByIdHandler = catchAsync(async (req, res) => {
     const id = req.user?.id;
     const result = await UserService.updateUserById(id as string, req.body);
@@ -38,6 +38,18 @@ const updateUserByIdHandler = catchAsync(async (req, res) => {
         statusCode: httpStatus.OK,
         success: true,
         message: 'User is updated succesfully',
+        data: result,
+    });
+});
+
+const updateUserStatusHandler = catchAsync(async (req, res) => {
+    const { userId } = req.params;
+    const { status } = req.body;
+    const result = await UserService.updateUserStatus(userId as string, status as any);
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'User status updated',
         data: result,
     });
 });
@@ -55,8 +67,9 @@ const deleteUserByIdHandler = catchAsync(async (req, res) => {
 });
 
 export const UserController = {
+    adminGetAllUsersHandler,
     findUserByIdHandler,
-    getAllUsersHandler,
     updateUserByIdHandler,
+    updateUserStatusHandler,
     deleteUserByIdHandler,
 };
