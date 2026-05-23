@@ -5,19 +5,40 @@ import validateRequest from "../../middlewares/validateRequest";
 import { eventController } from "./event.controller";
 import { eventValidation } from "./event.validation";
 
-
 const router = express.Router();
 
-// GET /events — browse all approved public events
+// ==========================================
+// 1. ADMIN ROUTES 
+// ==========================================
+router.get('/admin', auth(USER_ROLE.admin), eventController.adminGetAllEventsHandler);
+
+router.patch(
+    "/:id/status",
+    auth(USER_ROLE.admin),
+    validateRequest(eventValidation.updateEventStatusSchema), // ভ্যালিডেশনসহ
+    eventController.updateEventStatusHandler
+);
+
+router.delete(
+    "/admin/:id",
+    auth(USER_ROLE.admin),
+    eventController.adminDeleteEventHandler
+);
+
+// ==========================================
+// 2. STATIC ROUTES 
+// ==========================================
 router.get("/", eventController.getAllEventsHandler);
 
-// GET /events/my-events
-// (authenticated user's events)
 router.get(
     "/my-events",
     auth(USER_ROLE.user),
     eventController.getMyEventsHandler
 );
+
+// ==========================================
+// 3. DYNAMIC ROUTES 
+// ==========================================
 
 // GET /events/:id — single event details
 router.get("/:id", eventController.getEventByIdHandler);
@@ -43,20 +64,6 @@ router.delete(
     "/:id",
     auth(USER_ROLE.user),
     eventController.deleteEventHandler
-);
-
-router.patch(
-    "/status/:id",
-    auth(USER_ROLE.admin),
-    validateRequest(eventValidation.updateEventStatusSchema),
-    eventController.updateEventStatusHandler
-);
-
-// DELETE /events/admin/:id — force delete any event
-router.delete(
-    "/admin/:id",
-    auth(USER_ROLE.admin),
-    eventController.adminDeleteEventHandler
 );
 
 export const EventRoutes = router;

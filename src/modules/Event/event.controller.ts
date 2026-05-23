@@ -31,6 +31,17 @@ const getAllEventsHandler = catchAsync(async (req, res) => {
     });
 });
 
+const adminGetAllEventsHandler = catchAsync(async (req, res) => {
+  const result = await eventService.adminGetAllEvents(req.query as any);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All events fetched successfully',
+    data: result,
+  });
+});
+
+
 const getEventByIdHandler = catchAsync(async (req, res) => {
     const { id } = req.params;
 
@@ -155,6 +166,7 @@ const adminDeleteEventHandler = catchAsync(async (req, res) => {
 
 export const eventController = {
     getAllEventsHandler,
+    adminGetAllEventsHandler,
     getEventByIdHandler,
     createEventHandler,
     updateEventHandler,

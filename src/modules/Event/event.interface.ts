@@ -32,3 +32,10 @@ export interface IEventFilters {
     page?: string;
     limit?: string;
 }
+
+export interface IAdminEventFilters {
+  search?: string;
+  status?: EventStatus;
+  page?: string;
+  limit?: string;
+}

@@ -2,6 +2,7 @@
 import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
 import {
+    IAdminEventFilters,
     ICreateEvent,
     IEventFilters,
     IUpdateEvent,
@@ -85,6 +86,61 @@ const getAllEvents = async (filters: IEventFilters) => {
     };
 };
 
+// ─────────────────────────────────────────────
+// ADMIN — Get all events (all statuses)
+// ─────────────────────────────────────────────
+
+const adminGetAllEvents = async (filters: IAdminEventFilters) => {
+    const { search, status, page = '1', limit = '20' } = filters;
+
+    const pageNumber = Math.max(Number(page), 1);
+    const limitNumber = Math.min(Math.max(Number(limit), 1), 100);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const andConditions: Prisma.EventWhereInput[] = [];
+
+    if (status) {
+        andConditions.push({ status });
+    }
+
+    if (search) {
+        andConditions.push({
+            OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { owner: { name: { contains: search, mode: 'insensitive' } } },
+            ],
+        });
+    }
+
+    const where: Prisma.EventWhereInput =
+        andConditions.length > 0 ? { AND: andConditions } : {};
+
+    const [events, total] = await Promise.all([
+        prisma.event.findMany({
+            where,
+            skip,
+            take: limitNumber,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                owner: { select: { id: true, name: true, avatar: true } },
+                featuredEvent: true,          // null = not featured
+                _count: { select: { registrations: true, reviews: true } },
+            },
+        }),
+        prisma.event.count({ where }),
+    ]);
+
+    return {
+        data: events,
+        meta: {
+            total,
+            page: pageNumber,
+            limit: limitNumber,
+            totalPages: Math.ceil(total / limitNumber),
+        },
+    };
+};
+
 /**
  * Get single event details (public: only APPROVED events)
  */
@@ -149,7 +205,7 @@ const createEvent = async (ownerId: string, payload: ICreateEvent) => {
 };
 
 /**
- * Update an event — only the owner can update
+ * Update an event — only the owner can update edit event details
  */
 const updateEvent = async (
     eventId: string,
@@ -296,6 +352,7 @@ const adminDeleteEvent = async (eventId: string) => {
 
 export const eventService = {
     getAllEvents,
+    adminGetAllEvents,
     getEventById,
     createEvent,
     updateEvent,
