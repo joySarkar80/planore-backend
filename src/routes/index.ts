@@ -6,6 +6,7 @@ import { registrationRoutes } from "../modules/Registration/registration.route";
 import { PaymentRoutes } from "../modules/Payment/payment.route";
 import { ReviewRoutes } from "../modules/Review/review.route";
 import { InvititionRoutes } from "../modules/Invitition/invitition.route";
+import { featuredEventRoutes } from "../modules/FeaturedEvent/featuredEvent.route";
 
 const router = Router();
 
@@ -37,6 +38,14 @@ const moduleRoutes: { path: string; route: Router }[] = [
     {
         path: '/invitations',
         route: InvititionRoutes
+    },
+    {
+        path: '/invitations',
+        route: InvititionRoutes
+    },
+    {
+        path: '/featured-events',
+        route: featuredEventRoutes
     }
 
 ];

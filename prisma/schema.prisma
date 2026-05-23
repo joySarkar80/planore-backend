@@ -38,11 +38,11 @@ enum JoinStatus {
 enum RegistrationPaymentStatus {
   PAID
   UNPAID
-  FREE 
+  FREE
 }
 
 enum PaymentStatus {
-  INITIATED 
+  INITIATED
   PENDING
   SUCCESS
   FAILED
@@ -79,7 +79,7 @@ model Event {
   venue     String?
   eventLink String?
 
-  status     EventStatus     @default(PENDING) 
+  status     EventStatus     @default(PENDING)
   visibility EventVisibility @default(PUBLIC)
 
   registrationFee Decimal @default(0) @db.Decimal(10, 2)
@@ -93,6 +93,7 @@ model Event {
   registrations Registration[]
   reviews       Review[]
   payments      Payment[]
+  featuredEvent FeaturedEvent?
 
   @@index([ownerId])
   @@index([status])
@@ -111,9 +112,11 @@ model Registration {
 
   invitedById String?
 
-  user      User  @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
-  invitedBy User? @relation("InvitedByUser", fields: [invitedById], references: [id])
-  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user User @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
+
+  invitedBy User? @relation("InvitedByUser", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   payments Payment[]
 
@@ -135,15 +138,17 @@ model Payment {
   registrationId String?
 
   amount   Decimal @db.Decimal(10, 2)
-  currency String  @default("BDT") 
+  currency String  @default("BDT")
 
   status PaymentStatus @default(INITIATED)
 
-  provider      String 
-  transactionId String @unique 
+  provider      String
+  transactionId String @unique
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
   registration Registration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
@@ -168,8 +173,22 @@ model Review {
   updatedAt DateTime @updatedAt
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
   @@map("reviews")
+}
+
+model FeaturedEvent {
+  id String @id @default(uuid())
+
+  eventId String @unique
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("featured_events")
 }
