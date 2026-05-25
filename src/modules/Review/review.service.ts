@@ -16,7 +16,7 @@ const createReview = async (userId: string, payload: TReview) => {
     });
 
     if (!registration || registration.status !== 'APPROVED') {
-        throw new AppError(httpStatus.BAD_REQUEST, 'You can only review events you have been approved for.');
+        throw new AppError(httpStatus.BAD_REQUEST, 'You are not eligible to review this event. You must have approved join status for the event to leave a review.');
     }
 
     
@@ -65,7 +65,6 @@ const getMyReviews = async (userId: string) => {
 };
 
 const updateReview = async (userId: string, reviewId: string, payload: { rating?: number; comment?: string }) => {
-    // ১. চেক করুন রিভিউটি এক্সিস্ট করে কিনা এবং ইউজারের কিনা
     const review = await prisma.review.findUnique({
         where: { id: reviewId }
     });
@@ -78,7 +77,6 @@ const updateReview = async (userId: string, reviewId: string, payload: { rating?
         throw new AppError(httpStatus.FORBIDDEN, 'You are not authorized to update this review');
     }
 
-    // ২. আপডেট করুন
     const updatedReview = await prisma.review.update({
         where: { id: reviewId },
         data: payload,
@@ -91,7 +89,6 @@ const updateReview = async (userId: string, reviewId: string, payload: { rating?
 };
 
 const deleteReview = async (userId: string, reviewId: string) => {
-    // ১. চেক করুন রিভিউটি এক্সিস্ট করে কিনা এবং ইউজারের কিনা
     const review = await prisma.review.findUnique({
         where: { id: reviewId }
     });
@@ -104,7 +101,6 @@ const deleteReview = async (userId: string, reviewId: string) => {
         throw new AppError(httpStatus.FORBIDDEN, 'You are not authorized to delete this review');
     }
 
-    // ২. ডিলিট করুন
     const deletedReview = await prisma.review.delete({
         where: { id: reviewId }
     });

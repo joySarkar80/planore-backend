@@ -13,6 +13,8 @@ const getAllEventsHandler = catchAsync(async (req, res) => {
         isFree: req.query.isFree as string | undefined,
         page: req.query.page as string | undefined,
         limit: req.query.limit as string | undefined,
+        upcoming: req.query.upcoming as string | undefined,
+
     };
 
     const result = await eventService.getAllEvents(filters);
@@ -32,13 +34,13 @@ const getAllEventsHandler = catchAsync(async (req, res) => {
 });
 
 const adminGetAllEventsHandler = catchAsync(async (req, res) => {
-  const result = await eventService.adminGetAllEvents(req.query as any);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'All events fetched successfully',
-    data: result,
-  });
+    const result = await eventService.adminGetAllEvents(req.query as any);
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'All events fetched successfully',
+        data: result,
+    });
 });
 
 

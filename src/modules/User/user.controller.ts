@@ -5,14 +5,14 @@ import { UserService } from './user.service';
 
 
 const adminGetAllUsersHandler = catchAsync(async (req, res) => {
-    const currentAdminId = (req as any).user.id;
-    const result = await UserService.adminGetAllUsers(currentAdminId, req.query);
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Users fetched successfully',
-        data: result,
-    });
+  const currentAdminId = (req as any).user.id;
+  const result = await UserService.adminGetAllUsers(currentAdminId, req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Users fetched successfully',
+    data: result,
+  });
 });
 
 const findUserByIdHandler = catchAsync(async (req, res) => {
@@ -43,15 +43,15 @@ const updateUserByIdHandler = catchAsync(async (req, res) => {
 });
 
 const updateUserStatusHandler = catchAsync(async (req, res) => {
-    const { userId } = req.params;
-    const { status } = req.body;
-    const result = await UserService.updateUserStatus(userId as string, status as any);
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'User status updated',
-        data: result,
-    });
+  const { userId } = req.params;
+  const { status } = req.body;
+  const result = await UserService.updateUserStatus(userId as string, status as any);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User status updated',
+    data: result,
+  });
 });
 
 const deleteUserByIdHandler = catchAsync(async (req, res) => {
@@ -66,10 +66,22 @@ const deleteUserByIdHandler = catchAsync(async (req, res) => {
     });
 });
 
+const getMyProfileHandler = catchAsync(async (req, res) => {
+  const userId = req.user?.id;
+  const result = await UserService.getMyProfile(userId as string);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Profile fetched successfully',
+    data: result,
+  });
+});
+
 export const UserController = {
     adminGetAllUsersHandler,
     findUserByIdHandler,
     updateUserByIdHandler,
     updateUserStatusHandler,
     deleteUserByIdHandler,
+    getMyProfileHandler,
 };

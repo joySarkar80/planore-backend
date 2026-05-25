@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post(
     '/create-session',
-    auth(USER_ROLE.user), // শুধুমাত্র লগইন করা ইউজাররা পেমেন্ট সেশন খুলতে পারবে
+    auth(USER_ROLE.user, USER_ROLE.admin), 
     paymentController.createPaymentSession
 );
 

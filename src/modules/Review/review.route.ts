@@ -5,10 +5,28 @@ import { ReviewController } from './review.controller';
 const router = express.Router();
 
 
-router.post('/', auth(USER_ROLE.user), ReviewController.createReviewHandler);
-router.get('/my-reviews', auth(USER_ROLE.user), ReviewController.getMyReviewsHandler);
+router.post(
+    '/',
+    auth(USER_ROLE.user, USER_ROLE.admin),
+    ReviewController.createReviewHandler
+);
 
-router.patch('/:id', auth(USER_ROLE.user), ReviewController.updateReviewHandler);
-router.delete('/:id', auth(USER_ROLE.user), ReviewController.deleteReviewHandler);
+router.get(
+    '/my-reviews',
+    auth(USER_ROLE.user, USER_ROLE.admin),
+    ReviewController.getMyReviewsHandler
+);
+
+router.patch(
+    '/:id',
+    auth(USER_ROLE.user, USER_ROLE.admin),
+    ReviewController.updateReviewHandler
+);
+
+router.delete(
+    '/:id',
+    auth(USER_ROLE.user, USER_ROLE.admin),
+    ReviewController.deleteReviewHandler
+);
 
 export const ReviewRoutes = router;

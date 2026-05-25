@@ -18,13 +18,13 @@ const getAllEvents = async (filters: IEventFilters) => {
         isFree,
         page = "1",
         limit = "10",
+        upcoming
     } = filters;
 
     const pageNumber = Math.max(Number(page), 1);
     const limitNumber = Math.min(Math.max(Number(limit), 1), 50);
     const skip = (pageNumber - 1) * limitNumber;
 
-    // রিকোয়ারমেন্ট অনুযায়ী: অ্যাডমিন দ্বারা এপ্রুভড সব ইভেন্ট দেখাবে
     const andConditions: Prisma.EventWhereInput[] = [
         { status: EventStatus.APPROVED }
     ];
@@ -34,11 +34,15 @@ const getAllEvents = async (filters: IEventFilters) => {
         andConditions.push({ visibility: visibility });
     }
 
-    // Free / Paid Filter (আপনার ৫টি ক্যাটাগরি বাটনের লজিক)
     if (isFree === "true") {
         andConditions.push({ registrationFee: { equals: 0 } });
     } else if (isFree === "false") {
         andConditions.push({ registrationFee: { gt: 0 } });
+    }
+
+    // Upcoming filter — 
+    if (upcoming === 'true') {
+        andConditions.push({ startAt: { gte: new Date() } });
     }
 
     // Title / Organizer Search
@@ -63,7 +67,7 @@ const getAllEvents = async (filters: IEventFilters) => {
             skip,
             take: limitNumber,
             orderBy: { startAt: "asc" },
-            include: { // Select এর বদলে Include ব্যবহার করা ক্লিন কোডের জন্য ভালো
+            include: {
                 owner: {
                     select: { id: true, name: true, avatar: true },
                 },

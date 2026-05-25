@@ -31,11 +31,12 @@ export interface IEventFilters {
     isFree?: string; // "true" | "false"
     page?: string;
     limit?: string;
+    upcoming?: string;
 }
 
 export interface IAdminEventFilters {
-  search?: string;
-  status?: EventStatus;
-  page?: string;
-  limit?: string;
+    search?: string;
+    status?: EventStatus;
+    page?: string;
+    limit?: string;
 }

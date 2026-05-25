@@ -12,7 +12,17 @@ const router = express.Router();
 // 1. STATIC / SPECIFIC ROUTES 
 // ==========================================
 
-router.get('/all', auth(USER_ROLE.admin), UserController.adminGetAllUsersHandler);
+router.get(
+    '/all',
+    auth(USER_ROLE.admin),
+    UserController.adminGetAllUsersHandler
+);
+
+router.get(
+    '/me',
+    auth(USER_ROLE.user, USER_ROLE.admin),
+    UserController.getMyProfileHandler,
+);
 
 router.patch(
     '/me',

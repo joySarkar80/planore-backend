@@ -125,10 +125,53 @@ const deleteUserById = async (userId: string) => {
     return result;
 };
 
+const getMyProfile = async (userId: string) => {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
+            role: true,
+            createdAt: true,
+            registrations: {
+                where: {
+                    status: 'APPROVED',
+                    event: {
+                        startAt: { gte: new Date() },
+                        status: 'APPROVED',
+                    },
+                },
+                take: 5,
+                orderBy: { event: { startAt: 'asc' } },
+                select: {
+                    id: true,
+                    paymentStatus: true,
+                    event: {
+                        select: {
+                            id: true,
+                            title: true,
+                            startAt: true,
+                            visibility: true,
+                            registrationFee: true,
+                            venue: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+    return user;
+};
+
 export const UserService = {
     adminGetAllUsers,
     findUserById,
     updateUserById,
     updateUserStatus,
     deleteUserById,
+    getMyProfile,
 };

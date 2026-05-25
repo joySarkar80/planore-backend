@@ -15,7 +15,7 @@ router.get('/admin', auth(USER_ROLE.admin), eventController.adminGetAllEventsHan
 router.patch(
     "/:id/status",
     auth(USER_ROLE.admin),
-    validateRequest(eventValidation.updateEventStatusSchema), // ভ্যালিডেশনসহ
+    validateRequest(eventValidation.updateEventStatusSchema), 
     eventController.updateEventStatusHandler
 );
 
@@ -30,9 +30,10 @@ router.delete(
 // ==========================================
 router.get("/", eventController.getAllEventsHandler);
 
+// this route is for both users and admins to get their own events (created by them)
 router.get(
     "/my-events",
-    auth(USER_ROLE.user),
+    auth(USER_ROLE.user, USER_ROLE.admin), 
     eventController.getMyEventsHandler
 );
 
@@ -46,7 +47,7 @@ router.get("/:id", eventController.getEventByIdHandler);
 // POST /events — create a new event
 router.post(
     "/",
-    auth(USER_ROLE.user),
+    auth(USER_ROLE.user, USER_ROLE.admin),
     validateRequest(eventValidation.createEventSchema),
     eventController.createEventHandler
 );
@@ -54,7 +55,7 @@ router.post(
 // PATCH /events/:id — update own event
 router.patch(
     "/:id",
-    auth(USER_ROLE.user),
+    auth(USER_ROLE.user, USER_ROLE.admin),
     validateRequest(eventValidation.updateEventSchema),
     eventController.updateEventHandler
 );
@@ -62,7 +63,7 @@ router.patch(
 // DELETE /events/:id — delete own event
 router.delete(
     "/:id",
-    auth(USER_ROLE.user),
+    auth(USER_ROLE.user, USER_ROLE.admin),
     eventController.deleteEventHandler
 );
 

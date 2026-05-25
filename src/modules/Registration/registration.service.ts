@@ -14,7 +14,7 @@ const findApprovedEvent = async (eventId: string) => {
     }
 
     if (event.status !== "APPROVED") {
-        throw new AppError(httpStatus.BAD_REQUEST, "Event is not available for registration");
+        throw new AppError(httpStatus.BAD_REQUEST, "Event is not approved by an admin for registration!");
     }
 
     return event;
