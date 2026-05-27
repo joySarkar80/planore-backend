@@ -129,9 +129,17 @@ const updateParticipantStatusHandler = catchAsync(async (req, res) => {
 });
 
 const getJoinedEventsHandler = catchAsync(async (req, res) => {
-    const userId = req.user?.id; // From auth middleware
+    const userId = req.user?.id;
+    const queryFilter = req.query.filter as string;
 
-    const result = await registrationService.getJoinedEventsForUser(userId as string);
+    const filter = ['ALL EVENTS', 'UPCOMING', 'PAST'].includes(queryFilter)
+        ? (queryFilter as 'ALL EVENTS' | 'UPCOMING' | 'PAST')
+        : 'ALL EVENTS';
+
+    const result = await registrationService.getJoinedEventsForUser(
+        userId as string,
+        filter
+    );
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -140,6 +148,7 @@ const getJoinedEventsHandler = catchAsync(async (req, res) => {
         data: result,
     });
 });
+
 
 export const registrationController = {
     joinEventHandler,

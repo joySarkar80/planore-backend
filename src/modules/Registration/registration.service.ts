@@ -416,39 +416,52 @@ const updateParticipantStatus = async (
 };
 
 
-export const getJoinedEventsForUser = async (userId: string) => {
+export const getJoinedEventsForUser = async (
+    userId: string,
+    filter: 'ALL EVENTS' | 'UPCOMING' | 'PAST' = 'ALL EVENTS'
+) => {
+    const now = new Date();
+
     const joinedRegistrations = await prisma.registration.findMany({
         where: {
-            userId: userId,
-            // status: {
-            //     notIn: [JoinStatus.INVITED, JoinStatus.REJECTED]
-            // },
+            userId,
             NOT: {
                 paymentStatus: RegistrationPaymentStatus.UNPAID,
                 event: {
-                    visibility: EventVisibility.PUBLIC
-                }
-            }
+                    visibility: EventVisibility.PUBLIC,
+                },
+            },
+            // Apply event date filtering only for UPCOMING and PAST
+            ...(filter !== 'ALL EVENTS' && {
+                event: {
+                    startAt: filter === 'UPCOMING' ? { gte: now } : { lt: now },
+                },
+            }),
         },
         include: {
             event: {
                 include: {
                     reviews: {
-                        where: {
-                            userId: userId
-                        },
-                        take: 1
-                    }
-                }
-            }
+                        where: { userId },
+                        take: 1,
+                    },
+                },
+            },
         },
-        orderBy: {
-            createdAt: 'desc'
-        }
+        // Apply conditional sorting dynamically
+        orderBy:
+            filter === 'ALL EVENTS'
+                ? { createdAt: 'desc' } // New logic for ALL EVENTS
+                : {
+                    event: {
+                        startAt: filter === 'UPCOMING' ? 'asc' : 'desc',
+                    },
+                },
     });
 
     return joinedRegistrations;
 };
+
 
 
 export const registrationService = {

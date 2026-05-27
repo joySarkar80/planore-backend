@@ -112,22 +112,36 @@ const deleteEventHandler = catchAsync(async (req, res) => {
 
 const getMyEventsHandler = catchAsync(async (req, res) => {
     if (!req.user) {
-        throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+        throw new AppError(
+            httpStatus.UNAUTHORIZED,
+            "User not authenticated"
+        );
     }
 
     const filters = {
         search: req.query.search as string | undefined,
+        visibility: req.query.visibility as EventVisibility | undefined,
+        status: req.query.status as 'UPCOMING' | 'PAST' | undefined,
         page: req.query.page as string | undefined,
         limit: req.query.limit as string | undefined,
     };
 
-    const result = await eventService.getMyEvents(req.user.id, filters);
+    const result = await eventService.getMyEvents(
+        req.user.id,
+        filters
+    );
 
     sendResponse(res, {
-        statusCode: httpStatus.OK,
+        statusCode: 200, // httpStatus.OK
         success: true,
-        message: "My events retrieved successfully",
-        data: result.data,
+        message: "Events retrieved successfully",
+        meta: {
+            page: result.meta.page,
+            limit: result.meta.limit,
+            total: result.meta.total,
+            totalPage: result.meta.totalPages,
+        },
+        data: result.data
     });
 });
 

@@ -34,9 +34,31 @@ export interface IEventFilters {
     upcoming?: string;
 }
 
+export type AdminEventStatusFilter =
+    | EventStatus
+    | 'UPCOMING'
+    | 'PAST';
+
 export interface IAdminEventFilters {
     search?: string;
-    status?: EventStatus;
+    status?: AdminEventStatusFilter;
+    upcoming?: string;
     page?: string;
     limit?: string;
+}
+
+export interface IMyEventFilters {
+    search?: string;
+    visibility?: EventVisibility;
+    status?: 'UPCOMING' | 'PAST';
+    page?: string;
+    limit?: string;
+}
+
+export interface GetMyEventsParams {
+    search?: string;
+    status?: string;
+    visibility?: string;
+    page?: number;
+    limit?: number;
 }

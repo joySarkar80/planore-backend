@@ -4,6 +4,7 @@ import sendResponse from '../../utils/sendResponse';
 import { UserService } from './user.service';
 
 
+// get all  users, this admin route..
 const adminGetAllUsersHandler = catchAsync(async (req, res) => {
   const currentAdminId = (req as any).user.id;
   const result = await UserService.adminGetAllUsers(currentAdminId, req.query);

@@ -5,12 +5,15 @@ import {
     IAdminEventFilters,
     ICreateEvent,
     IEventFilters,
+    IMyEventFilters,
     IUpdateEvent,
     IUpdateEventStatus,
 } from "./event.interface";
-import { EventStatus, EventVisibility, Prisma } from "@prisma/client";
+import { EventStatus, EventVisibility, Prisma, RegistrationPaymentStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
+import { JoinStatus } from "../../../generated/prisma/enums";
 
+// get all events for events page and slider..
 const getAllEvents = async (filters: IEventFilters) => {
     const {
         search,
@@ -90,12 +93,15 @@ const getAllEvents = async (filters: IEventFilters) => {
     };
 };
 
-// ─────────────────────────────────────────────
-// ADMIN — Get all events (all statuses)
-// ─────────────────────────────────────────────
-
+// get all events for admin dashboard..
 const adminGetAllEvents = async (filters: IAdminEventFilters) => {
-    const { search, status, page = '1', limit = '20' } = filters;
+    const {
+        search,
+        status,
+        upcoming,
+        page = '1',
+        limit = '20',
+    } = filters;
 
     const pageNumber = Math.max(Number(page), 1);
     const limitNumber = Math.min(Math.max(Number(limit), 1), 100);
@@ -103,35 +109,92 @@ const adminGetAllEvents = async (filters: IAdminEventFilters) => {
 
     const andConditions: Prisma.EventWhereInput[] = [];
 
-    if (status) {
-        andConditions.push({ status });
+    // Upcoming + Pending (Dashboard Main Page)
+    if (upcoming === 'true') {
+        andConditions.push({
+            startAt: {
+                gte: new Date(),
+            },
+        });
     }
 
+    // Dropdown Filters
+    if (status === 'UPCOMING') {
+        andConditions.push({
+            startAt: {
+                gte: new Date(),
+            },
+        });
+    } else if (status === 'PAST') {
+        andConditions.push({
+            startAt: {
+                lt: new Date(),
+            },
+        });
+    } else if (status) {
+        andConditions.push({
+            status: status as EventStatus,
+        });
+    }
+
+    // Search
     if (search) {
         andConditions.push({
             OR: [
-                { title: { contains: search, mode: 'insensitive' } },
-                { owner: { name: { contains: search, mode: 'insensitive' } } },
+                {
+                    title: {
+                        contains: search,
+                        mode: 'insensitive',
+                    },
+                },
+                {
+                    owner: {
+                        name: {
+                            contains: search,
+                            mode: 'insensitive',
+                        },
+                    },
+                },
             ],
         });
     }
 
     const where: Prisma.EventWhereInput =
-        andConditions.length > 0 ? { AND: andConditions } : {};
+        andConditions.length > 0
+            ? {
+                AND: andConditions,
+            }
+            : {};
 
     const [events, total] = await Promise.all([
         prisma.event.findMany({
             where,
             skip,
             take: limitNumber,
-            orderBy: { createdAt: 'desc' },
+            orderBy: {
+                createdAt: 'desc',
+            },
             include: {
-                owner: { select: { id: true, name: true, avatar: true } },
-                featuredEvent: true,          // null = not featured
-                _count: { select: { registrations: true, reviews: true } },
+                owner: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatar: true,
+                    },
+                },
+                featuredEvent: true,
+                _count: {
+                    select: {
+                        registrations: true,
+                        reviews: true,
+                    },
+                },
             },
         }),
-        prisma.event.count({ where }),
+
+        prisma.event.count({
+            where,
+        }),
     ]);
 
     return {
@@ -145,9 +208,7 @@ const adminGetAllEvents = async (filters: IAdminEventFilters) => {
     };
 };
 
-/**
- * Get single event details (public: only APPROVED events)
- */
+// Get single event details (public: only APPROVED events)..
 const getEventById = async (id: string) => {
     const event = await prisma.event.findUnique({
         where: { id },
@@ -183,13 +244,7 @@ const getEventById = async (id: string) => {
     return event;
 };
 
-// ─────────────────────────────────────────────
-// USER ROUTES
-// ─────────────────────────────────────────────
-
-/**
- * Create a new event (status defaults to PENDING, requires admin approval)
- */
+// Create a new event (status defaults to PENDING, requires admin approval).
 const createEvent = async (ownerId: string, payload: ICreateEvent) => {
     const event = await prisma.event.create({
         data: {
@@ -208,9 +263,7 @@ const createEvent = async (ownerId: string, payload: ICreateEvent) => {
     return event;
 };
 
-/**
- * Update an event — only the owner can update edit event details
- */
+// Update an event — only the owner can update edit event details..
 const updateEvent = async (
     eventId: string,
     requesterId: string,
@@ -243,9 +296,7 @@ const updateEvent = async (
     return updated;
 };
 
-/**
- * Delete an event — only the owner can delete
- */
+// Delete an event — only the owner can delete..
 const deleteEvent = async (eventId: string, requesterId: string) => {
     const event = await prisma.event.findUnique({ where: { id: eventId } });
 
@@ -265,24 +316,68 @@ const deleteEvent = async (eventId: string, requesterId: string) => {
     return { message: "Event deleted successfully" };
 };
 
-/**
- * Get events created by the currently logged-in user
- */
+// Get events created by the currently logged-in user..
 const getMyEvents = async (
     userId: string,
-    filters: Pick<IEventFilters, "page" | "limit" | "search">
+    filters: IMyEventFilters
 ) => {
-    const { search, page = "1", limit = "10" } = filters;
+    const {
+        search,
+        visibility,
+        status,
+        page = "1",
+        limit = "10",
+    } = filters;
 
     const pageNumber = Math.max(Number(page), 1);
     const limitNumber = Math.min(Math.max(Number(limit), 1), 50);
     const skip = (pageNumber - 1) * limitNumber;
 
+    const andConditions: Prisma.EventWhereInput[] = [
+        {
+            ownerId: userId,
+        },
+    ];
+
+    // title search only
+    if (search) {
+        andConditions.push({
+            title: {
+                contains: search,
+                mode: "insensitive",
+            },
+        });
+    }
+
+    // PUBLIC / PRIVATE
+    if (visibility) {
+        andConditions.push({
+            visibility,
+        });
+    }
+
+    if (status === 'UPCOMING') {
+        andConditions.push({
+            startAt: {
+                gte: new Date(),
+            },
+        });
+    }
+    else if (status === 'PAST') {
+        andConditions.push({
+            startAt: {
+                lt: new Date(),
+            },
+        });
+    }
+    else if (status) {
+        andConditions.push({
+            status: status as EventStatus,
+        });
+    }
+
     const where: Prisma.EventWhereInput = {
-        ownerId: userId,
-        ...(search && {
-            title: { contains: search, mode: "insensitive" },
-        }),
+        AND: andConditions,
     };
 
     const [events, total] = await Promise.all([
@@ -290,18 +385,83 @@ const getMyEvents = async (
             where,
             skip,
             take: limitNumber,
-            orderBy: { createdAt: "desc" },
+            orderBy: {
+                createdAt: "desc",
+            },
             include: {
                 _count: {
-                    select: { registrations: true, reviews: true },
+                    select: {
+                        reviews: true,
+                    },
+                },
+                registrations: {
+                    select: {
+                        status: true,
+                        paymentStatus: true,
+                    },
                 },
             },
         }),
-        prisma.event.count({ where }),
+
+        prisma.event.count({
+            where,
+        }),
     ]);
 
+    const data = events.map((event) => {
+        let participantCount = 0;
+
+        // PUBLIC + FREE
+        if (
+            event.visibility === EventVisibility.PUBLIC &&
+            Number(event.registrationFee) === 0
+        ) {
+            participantCount = event.registrations.length;
+        }
+
+        // PUBLIC + PAID
+        else if (
+            event.visibility === EventVisibility.PUBLIC &&
+            Number(event.registrationFee) > 0
+        ) {
+            participantCount = event.registrations.filter(
+                (registration) =>
+                    registration.status === JoinStatus.APPROVED &&
+                    registration.paymentStatus ===
+                    RegistrationPaymentStatus.PAID
+            ).length;
+        }
+
+        // PRIVATE + FREE
+        else if (
+            event.visibility === EventVisibility.PRIVATE &&
+            Number(event.registrationFee) === 0
+        ) {
+            participantCount = event.registrations.filter(
+                (registration) =>
+                    registration.status === JoinStatus.APPROVED
+            ).length;
+        }
+
+        // PRIVATE + PAID
+        else {
+            participantCount = event.registrations.filter(
+                (registration) =>
+                    registration.status === JoinStatus.APPROVED &&
+                    registration.paymentStatus ===
+                    RegistrationPaymentStatus.PAID
+            ).length;
+        }
+
+        return {
+            ...event,
+            participantCount,
+            registrations: undefined,
+        };
+    });
+
     return {
-        data: events,
+        data,
         meta: {
             total,
             page: pageNumber,
@@ -311,13 +471,7 @@ const getMyEvents = async (
     };
 };
 
-// ─────────────────────────────────────────────
-// ADMIN ROUTES
-// ─────────────────────────────────────────────
-
-/**
- * Approve or Reject an event — Admin only
- */
+// Approve or Reject an event — Admin only..
 const updateEventStatus = async (
     eventId: string,
     payload: IUpdateEventStatus
@@ -339,9 +493,7 @@ const updateEventStatus = async (
     return updated;
 };
 
-/**
- * Force delete any event — Admin only
- */
+// Force delete any event — Admin only..
 const adminDeleteEvent = async (eventId: string) => {
     const event = await prisma.event.findUnique({ where: { id: eventId } });
 

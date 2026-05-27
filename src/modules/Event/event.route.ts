@@ -7,11 +7,10 @@ import { eventValidation } from "./event.validation";
 
 const router = express.Router();
 
-// ==========================================
-// 1. ADMIN ROUTES 
-// ==========================================
+// get all events for admin dashboard..
 router.get('/admin', auth(USER_ROLE.admin), eventController.adminGetAllEventsHandler);
 
+// update event status approve or reject..
 router.patch(
     "/:id/status",
     auth(USER_ROLE.admin),
@@ -19,29 +18,24 @@ router.patch(
     eventController.updateEventStatusHandler
 );
 
+// delete event by admin..
 router.delete(
     "/admin/:id",
     auth(USER_ROLE.admin),
     eventController.adminDeleteEventHandler
 );
 
-// ==========================================
-// 2. STATIC ROUTES 
-// ==========================================
+// get all events for events page and home page slider..
 router.get("/", eventController.getAllEventsHandler);
 
-// this route is for both users and admins to get their own events (created by them)
+// this route is for both users and admins to get their own events (created by them)..
 router.get(
     "/my-events",
     auth(USER_ROLE.user, USER_ROLE.admin), 
     eventController.getMyEventsHandler
 );
 
-// ==========================================
-// 3. DYNAMIC ROUTES 
-// ==========================================
-
-// GET /events/:id — single event details
+// GET /events/:id — single event details..
 router.get("/:id", eventController.getEventByIdHandler);
 
 // POST /events — create a new event
@@ -52,7 +46,7 @@ router.post(
     eventController.createEventHandler
 );
 
-// PATCH /events/:id — update own event
+// PATCH /events/:id edit own event..
 router.patch(
     "/:id",
     auth(USER_ROLE.user, USER_ROLE.admin),

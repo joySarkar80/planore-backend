@@ -15,6 +15,7 @@ export type TUserPayload = {
     rating?: number;
 };
 
+// get all user, this is admin route..
 const adminGetAllUsers = async (
     currentAdminId: string,
     query: Record<string, unknown>
@@ -65,6 +66,7 @@ const adminGetAllUsers = async (
     };
 };
 
+
 const findUserById = async (userId: string, currentUser: any) => {
     if (
         currentUser.role !== USER_ROLE.admin &&
@@ -102,6 +104,7 @@ const updateUserById = async (userId: string, payload: Partial<TUserPayload>) =>
     return result;
 };
 
+// update user status, active or banned 
 const updateUserStatus = async (userId: string, status: UserStatus) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
@@ -125,6 +128,7 @@ const deleteUserById = async (userId: string) => {
     return result;
 };
 
+// user profile
 const getMyProfile = async (userId: string) => {
     const user = await prisma.user.findUnique({
         where: { id: userId },
