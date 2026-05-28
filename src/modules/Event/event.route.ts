@@ -14,7 +14,7 @@ router.get('/admin', auth(USER_ROLE.admin), eventController.adminGetAllEventsHan
 router.patch(
     "/:id/status",
     auth(USER_ROLE.admin),
-    validateRequest(eventValidation.updateEventStatusSchema), 
+    validateRequest(eventValidation.updateEventStatusSchema),
     eventController.updateEventStatusHandler
 );
 
@@ -31,9 +31,15 @@ router.get("/", eventController.getAllEventsHandler);
 // this route is for both users and admins to get their own events (created by them)..
 router.get(
     "/my-events",
-    auth(USER_ROLE.user, USER_ROLE.admin), 
+    auth(USER_ROLE.user, USER_ROLE.admin),
     eventController.getMyEventsHandler
 );
+
+router.get(
+    "/recent-events",
+    auth(USER_ROLE.user),
+    eventController.getRecentEventsHandler
+)
 
 // GET /events/:id — single event details..
 router.get("/:id", eventController.getEventByIdHandler);

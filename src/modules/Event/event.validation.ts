@@ -77,7 +77,7 @@ const updateEventSchema = z.object({
 
 const updateEventStatusSchema = z.object({
     body: z.object({
-        status: z.enum(["APPROVED", "REJECTED"], {
+        status: z.enum(["PENDING", "APPROVED", "REJECTED"], {
             required_error: "Status is required",
             invalid_type_error: "Status must be APPROVED or REJECTED",
         }),

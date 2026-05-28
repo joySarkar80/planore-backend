@@ -4,7 +4,10 @@ import AppError from '../../errors/AppError';
 import { prisma } from '../../lib/prisma';
 
 const setFeaturedEvent = async (eventId: string) => {
-  const event = await prisma.event.findUnique({ where: { id: eventId } });
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+  });
 
   if (!event) {
     throw new AppError(httpStatus.NOT_FOUND, 'Event not found');
@@ -14,6 +17,16 @@ const setFeaturedEvent = async (eventId: string) => {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       'Only APPROVED events can be featured'
+    );
+  }
+
+  // Prevent featuring past events
+  const now = new Date();
+
+  if (event.startAt < now) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'This event cannot be featured because the event date has already passed'
     );
   }
 
@@ -29,7 +42,13 @@ const setFeaturedEvent = async (eventId: string) => {
           title: true,
           startAt: true,
           status: true,
-          owner: { select: { id: true, name: true, avatar: true } },
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+            },
+          },
         },
       },
     },
@@ -40,11 +59,28 @@ const setFeaturedEvent = async (eventId: string) => {
 
 const getFeaturedEvent = async () => {
   return prisma.featuredEvent.findFirst({
+    where: {
+      event: {
+        startAt: {
+          gte: new Date(),
+        },
+      },
+    },
     include: {
       event: {
         include: {
-          owner: { select: { id: true, name: true, avatar: true } },
-          _count: { select: { registrations: true } },
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+            },
+          },
+          _count: {
+            select: {
+              registrations: true,
+            },
+          },
         },
       },
     },

@@ -110,6 +110,21 @@ const deleteEventHandler = catchAsync(async (req, res) => {
     });
 });
 
+const getRecentEventsHandler = catchAsync(async (req, res) => {
+    if (!req.user) {
+        throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    }
+
+    const data = await eventService.getRecentEvents(req.user.id);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Recent events retrieved successfully",
+        data,
+    });
+});
+
 const getMyEventsHandler = catchAsync(async (req, res) => {
     if (!req.user) {
         throw new AppError(
@@ -187,6 +202,7 @@ export const eventController = {
     createEventHandler,
     updateEventHandler,
     deleteEventHandler,
+    getRecentEventsHandler,
     getMyEventsHandler,
     updateEventStatusHandler,
     adminDeleteEventHandler,

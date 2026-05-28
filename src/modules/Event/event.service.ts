@@ -246,17 +246,33 @@ const getEventById = async (id: string) => {
 
 // Create a new event (status defaults to PENDING, requires admin approval).
 const createEvent = async (ownerId: string, payload: ICreateEvent) => {
+    const startAtDate = new Date(payload.startAt);
+
+    // Validate past date
+    if (startAtDate < new Date()) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "Event date/time cannot be in the past!!"
+        );
+    }
+
     const event = await prisma.event.create({
         data: {
             ...payload,
-            startAt: new Date(payload.startAt),
+            startAt: startAtDate,
             registrationFee: payload.registrationFee ?? 0,
             visibility: payload.visibility ?? EventVisibility.PUBLIC,
             status: EventStatus.PENDING,
             ownerId,
         },
         include: {
-            owner: { select: { id: true, name: true, avatar: true } },
+            owner: {
+                select: {
+                    id: true,
+                    name: true,
+                    avatar: true,
+                },
+            },
         },
     });
 
@@ -314,6 +330,24 @@ const deleteEvent = async (eventId: string, requesterId: string) => {
     await prisma.event.delete({ where: { id: eventId } });
 
     return { message: "Event deleted successfully" };
+};
+
+// get recent events for users dashboard,,
+const getRecentEvents = async (userId: string) => {
+    const events = await prisma.event.findMany({
+        where: {
+            ownerId: userId,
+            startAt: {
+                gte: new Date(),
+            },
+        },
+        orderBy: {
+            createdAt: 'desc',
+        },
+        take: 5,
+    });
+
+    return events;
 };
 
 // Get events created by the currently logged-in user..
@@ -513,6 +547,7 @@ export const eventService = {
     createEvent,
     updateEvent,
     deleteEvent,
+    getRecentEvents,
     getMyEvents,
     updateEventStatus,
     adminDeleteEvent,
