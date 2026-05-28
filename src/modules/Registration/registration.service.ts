@@ -375,7 +375,10 @@ const getEventParticipants = async (ownerId: string, eventId: string) => {
         },
     });
 
-    return participants;
+    return {
+        event,
+        participants
+    };
 };
 
 const updateParticipantStatus = async (

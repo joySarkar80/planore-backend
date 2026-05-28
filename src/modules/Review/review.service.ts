@@ -4,22 +4,22 @@ import { prisma } from '../../lib/prisma';
 import AppError from '../../errors/AppError';
 
 const createReview = async (userId: string, payload: TReview) => {
-    
+
     const registration = await prisma
-    .registration.findUnique({
-        where: {
-            eventId_userId: {
-                eventId: payload.eventId,
-                userId: userId,
+        .registration.findUnique({
+            where: {
+                eventId_userId: {
+                    eventId: payload.eventId,
+                    userId: userId,
+                },
             },
-        },
-    });
+        });
 
     if (!registration || registration.status !== 'APPROVED') {
         throw new AppError(httpStatus.BAD_REQUEST, 'You are not eligible to review this event. You must have approved join status for the event to leave a review.');
     }
 
-    
+
     const existingReview = await prisma.review.findUnique({
         where: {
             eventId_userId: {
@@ -33,7 +33,7 @@ const createReview = async (userId: string, payload: TReview) => {
         throw new AppError(httpStatus.BAD_REQUEST, 'You have already reviewed this event.');
     }
 
-    
+
     const newReview = await prisma.review.create({
         data: {
             eventId: payload.eventId,
@@ -57,10 +57,43 @@ const getMyReviews = async (userId: string) => {
                     startAt: true,
                     venue: true,
                 }
+            },
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    avatar: true,
+                }
             }
         },
         orderBy: { createdAt: 'desc' }
     });
+    return reviews;
+};
+
+const getAllEventReviews = async (eventId: string) => {
+    const reviews = await prisma.review.findMany({
+        where: { eventId },
+        include: {
+            event: {
+                select: {
+                    id: true,
+                    title: true,
+                    startAt: true,
+                    venue: true,
+                }
+            },
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    avatar: true,
+                },
+            },
+        },
+        orderBy: { createdAt: 'desc' },
+    });
+ 
     return reviews;
 };
 
@@ -111,6 +144,7 @@ const deleteReview = async (userId: string, reviewId: string) => {
 export const ReviewService = {
     createReview,
     getMyReviews,
+    getAllEventReviews,
     updateReview,
     deleteReview
 };

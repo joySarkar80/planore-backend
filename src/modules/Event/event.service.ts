@@ -69,7 +69,7 @@ const getAllEvents = async (filters: IEventFilters) => {
             where,
             skip,
             take: limitNumber,
-            orderBy: { startAt: "asc" },
+            orderBy: { createdAt: "desc" },
             include: {
                 owner: {
                     select: { id: true, name: true, avatar: true },

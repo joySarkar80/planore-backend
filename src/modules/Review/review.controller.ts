@@ -30,6 +30,19 @@ const getMyReviewsHandler = catchAsync(async (req, res) => {
     });
 });
 
+const getAllEventReviewsHandler = catchAsync(async (req, res) => {
+    const { eventId } = req.params;
+
+    const result = await ReviewService.getAllEventReviews(eventId as string);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Event reviews retrieved successfully',
+        data: result,
+    });
+});
+
 const updateReviewHandler = catchAsync(async (req, res) => {
     const userId = req.user?.id;
     const { id: reviewId } = req.params;
@@ -59,6 +72,7 @@ const deleteReviewHandler = catchAsync(async (req, res) => {
 export const ReviewController = {
     createReviewHandler,
     getMyReviewsHandler,
+    getAllEventReviewsHandler,
     updateReviewHandler,
     deleteReviewHandler
 };

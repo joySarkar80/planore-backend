@@ -104,7 +104,7 @@ const getEventParticipantsHandler = catchAsync(async (req, res) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Participants list retrieved successfully",
+        message: "Participants list and single event retrieved successfully",
         data: result,
     });
 });

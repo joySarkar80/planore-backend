@@ -4,17 +4,21 @@ import { ReviewController } from './review.controller';
 
 const router = express.Router();
 
+router.get(
+    '/my-reviews',
+    auth(USER_ROLE.user, USER_ROLE.admin),
+    ReviewController.getMyReviewsHandler
+);
+
+router.get(
+    '/event/:eventId',
+    ReviewController.getAllEventReviewsHandler
+);
 
 router.post(
     '/',
     auth(USER_ROLE.user, USER_ROLE.admin),
     ReviewController.createReviewHandler
-);
-
-router.get(
-    '/my-reviews',
-    auth(USER_ROLE.user, USER_ROLE.admin),
-    ReviewController.getMyReviewsHandler
 );
 
 router.patch(
