@@ -14,12 +14,12 @@ const createCheckoutSession = async (
     payload: {
         eventId: string;
         eventTitle: string;
-        registrationId: string;
+        registrationId?: string; // <-- এটিকে optional (?) করে দাও
         userId: string;
         amount: number;
         userEmail: string;
-        successUrl?: string;  
-        cancelUrl?: string;   
+        successUrl?: string;
+        cancelUrl?: string;
     },
     clientTx?: any
 ) => {
@@ -30,7 +30,6 @@ const createCheckoutSession = async (
         throw new AppError(httpStatus.BAD_REQUEST, "Minimum payment amount must be at least $0.50 USD.");
     }
 
-    // Default URLs, override করা যাবে
     const successUrl = payload.successUrl ?? `${process.env.FRONTEND_URL}/dashboard/joined-events?payment=success`;
     const cancelUrl = payload.cancelUrl ?? `${process.env.FRONTEND_URL}/dashboard/invitations?status=cancel`;
 
@@ -40,7 +39,8 @@ const createCheckoutSession = async (
         success_url: successUrl,
         cancel_url: cancelUrl,
         customer_email: payload.userEmail,
-        client_reference_id: payload.registrationId,
+        
+        client_reference_id: payload.registrationId || undefined,
         line_items: [
             {
                 price_data: {
@@ -54,7 +54,7 @@ const createCheckoutSession = async (
         metadata: {
             eventId: payload.eventId,
             userId: payload.userId,
-            registrationId: payload.registrationId,
+            ...(payload.registrationId && { registrationId: payload.registrationId }), 
         },
     });
 
@@ -62,7 +62,7 @@ const createCheckoutSession = async (
         data: {
             userId: payload.userId,
             eventId: payload.eventId,
-            registrationId: payload.registrationId,
+            registrationId: payload.registrationId || null, 
             amount: payload.amount,
             provider: 'STRIPE',
             transactionId: session.id,
@@ -72,7 +72,6 @@ const createCheckoutSession = async (
 
     return session;
 };
-
 
 const handleWebhook = async (rawBody: Buffer, signature: string) => {
     let event: any;
@@ -90,43 +89,62 @@ const handleWebhook = async (rawBody: Buffer, signature: string) => {
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object as any;
         const stripeSessionId = session.id;
-        const registrationId = session.client_reference_id;
 
-        if (registrationId && stripeSessionId) {
-            const paymentRecord = await prisma.payment.findFirst({
-                where: {
-                    registrationId: registrationId,
-                    transactionId: stripeSessionId
-                }
+        const eventId = session.metadata.eventId;
+        const userId = session.metadata.userId;
+        const metadataRegistrationId = session.metadata.registrationId;
+
+        if (stripeSessionId) {
+            const paymentRecord = await prisma.payment.findUnique({
+                where: { transactionId: stripeSessionId }
             });
 
             if (paymentRecord) {
-                const registration = await prisma.registration.findUnique({
-                    where: { id: registrationId },
-                });
+                let actualRegistrationId = metadataRegistrationId || paymentRecord.registrationId;
 
-                if (registration) {
-                    const shouldUpdateStatus = registration.status !== 'APPROVED';
+                await prisma.$transaction(async (tx) => {
+                    if (!actualRegistrationId) {
+                        let existingReg = await tx.registration.findUnique({
+                            where: { eventId_userId: { eventId, userId } }
+                        });
 
-                    const updateData: any = {
-                        paymentStatus: 'PAID',
-                    };
+                        if (!existingReg) {
+                            existingReg = await tx.registration.create({
+                                data: {
+                                    eventId,
+                                    userId,
+                                    status: 'PENDING',
+                                    paymentStatus: 'PAID',
+                                }
+                            });
+                        }
+                        actualRegistrationId = existingReg.id;
+                    }
+                    else {
+                        const registration = await tx.registration.findUnique({
+                            where: { id: actualRegistrationId },
+                        });
 
-                    if (shouldUpdateStatus) {
-                        updateData.status = 'PENDING';
+                        if (registration) {
+                            const updateData: any = { paymentStatus: 'PAID' };
+                            if (registration.status !== 'APPROVED') {
+                                updateData.status = 'PENDING';
+                            }
+                            await tx.registration.update({
+                                where: { id: actualRegistrationId },
+                                data: updateData,
+                            });
+                        }
                     }
 
-                    await prisma.$transaction([
-                        prisma.payment.update({
-                            where: { id: paymentRecord.id },
-                            data: { status: 'SUCCESS' },
-                        }),
-                        prisma.registration.update({
-                            where: { id: registrationId },
-                            data: updateData, 
-                        }),
-                    ]);
-                }
+                    await tx.payment.update({
+                        where: { id: paymentRecord.id },
+                        data: {
+                            status: 'SUCCESS',
+                            registrationId: actualRegistrationId
+                        },
+                    });
+                });
             }
         }
     }

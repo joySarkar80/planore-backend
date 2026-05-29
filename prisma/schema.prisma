@@ -67,6 +67,12 @@ model User {
   reviews       Review[]
   payments      Payment[]
 
+  // NEW
+  hostedBans HostBan[] @relation("HostBanOwner")
+
+  // NEW
+  bannedFromHosts HostBan[] @relation("HostBannedUser")
+
   @@map("users")
 }
 
@@ -191,4 +197,31 @@ model FeaturedEvent {
   updatedAt DateTime @updatedAt
 
   @@map("featured_events")
+}
+
+//
+// NEW MODEL
+//
+model HostBan {
+  id String @id @default(uuid())
+
+  hostId String
+  userId String
+
+  reason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Optional audit trail
+  liftedAt DateTime?
+
+  host User @relation("HostBanOwner", fields: [hostId], references: [id], onDelete: Cascade)
+
+  user User @relation("HostBannedUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([hostId, userId])
+  @@index([hostId])
+  @@index([userId])
+  @@map("host_bans")
 }

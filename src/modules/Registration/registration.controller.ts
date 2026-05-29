@@ -10,13 +10,17 @@ const joinEventHandler = catchAsync(async (req, res) => {
 
     const result = await registrationService.joinEvent(eventId as string, userId);
 
+    let message = "Join request submitted. Awaiting owner approval.";
+    if (result.registration?.status === "APPROVED") {
+        message = "Joined event successfully";
+    } else if (!result.registration && result.checkoutUrl) {
+        message = "Please complete the payment to finalize your registration.";
+    }
+
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message:
-            result.registration.status === "APPROVED"
-                ? "Joined event successfully"
-                : "Join request submitted. Awaiting owner approval.",
+        message,
         data: result,
     });
 });
@@ -149,6 +153,18 @@ const getJoinedEventsHandler = catchAsync(async (req, res) => {
     });
 });
 
+const deleteRegistrationHandler = catchAsync(async (req, res) => {
+    const ownerId = req.user?.id;
+    const { registrationId } = req.params;
+    const result = await registrationService.deleteRegistration(ownerId as string, registrationId as string);
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Registration deleted successfully',
+        data: result,
+    });
+});
+
 
 export const registrationController = {
     joinEventHandler,
@@ -158,5 +174,6 @@ export const registrationController = {
     getInvitedUsersByEventHandler,
     getEventParticipantsHandler,
     updateParticipantStatusHandler,
-    getJoinedEventsHandler
+    getJoinedEventsHandler,
+    deleteRegistrationHandler
 }; 

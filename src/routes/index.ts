@@ -8,6 +8,7 @@ import { ReviewRoutes } from "../modules/Review/review.route";
 import { InvititionRoutes } from "../modules/Invitition/invitition.route";
 import { featuredEventRoutes } from "../modules/FeaturedEvent/featuredEvent.route";
 import { StatsRoutes } from "../modules/Stats/stats.route";
+import { hostBanRoutes } from "../modules/HostBan/hostBan.route";
 
 const router = Router();
 
@@ -47,6 +48,10 @@ const moduleRoutes: { path: string; route: Router }[] = [
     {
         path: '/dashboard',
         route: StatsRoutes
+    },
+    {
+        path: '/host-ban',
+        route: hostBanRoutes
     }
 
 ];

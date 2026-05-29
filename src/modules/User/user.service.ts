@@ -136,6 +136,7 @@ const getMyProfile = async (userId: string) => {
             id: true,
             name: true,
             email: true,
+            status:true,
             avatar: true,
             role: true,
             createdAt: true,

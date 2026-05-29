@@ -2,8 +2,12 @@ import AppError from "../../errors/AppError";
 import { prisma } from "../../lib/prisma";
 import httpStatus from "http-status";
 
-import { EventVisibility, JoinStatus, RegistrationPaymentStatus } from "@prisma/client";
+import { EventVisibility, JoinStatus, PaymentStatus, RegistrationPaymentStatus } from "@prisma/client";
 import { paymentService } from "../Payment/payment.service";
+import { hostBanService } from "../HostBan/hostBan.service";
+
+
+
 
 // Fetch event and throw 404 if missing or not approved
 const findApprovedEvent = async (eventId: string) => {
@@ -20,6 +24,26 @@ const findApprovedEvent = async (eventId: string) => {
     return event;
 };
 
+// fetch active user..
+const findActiveUser = async (identifier: string) => {
+    const isEmail = identifier.includes("@");
+
+    const user = await prisma.user.findUnique({
+        where: isEmail ? { email: identifier } : { id: identifier },
+    });
+
+    if (!user) {
+        throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    if (user.status === "BANNED") {
+        throw new AppError(httpStatus.BAD_REQUEST, "User is BANNED by admin!23");
+    }
+
+    return user;
+};
+
+
 // Throw 409 if user already has a registration row for this event 
 const assertNotAlreadyRegistered = async (eventId: string, userId: string) => {
     const existing = await prisma.registration.findUnique({
@@ -34,6 +58,8 @@ const assertNotAlreadyRegistered = async (eventId: string, userId: string) => {
 const joinEvent = async (eventId: string, userId: string) => {
     const event = await findApprovedEvent(eventId);
 
+    const user = await findActiveUser(userId);
+
     const existingRegistration = await prisma.registration.findUnique({
         where: {
             eventId_userId: { eventId, userId }
@@ -41,9 +67,10 @@ const joinEvent = async (eventId: string, userId: string) => {
         include: { user: { select: { email: true, name: true } } }
     });
 
+    const isFree = Number(event.registrationFee) === 0;
+    const isPublic = event.visibility === EventVisibility.PUBLIC;
+
     if (existingRegistration) {
-        const isFree = Number(event.registrationFee) === 0;
-        const isPublic = event.visibility === EventVisibility.PUBLIC;
         const { status, paymentStatus } = existingRegistration;
 
         if (isPublic && !isFree) {
@@ -67,8 +94,7 @@ const joinEvent = async (eventId: string, userId: string) => {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered!!");
             }
         }
-
-        // ২. Private Free
+        // 2. Private Free
         else if (!isPublic && isFree) {
             if (status === JoinStatus.PENDING) {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered please wait for owner approval.");
@@ -77,8 +103,7 @@ const joinEvent = async (eventId: string, userId: string) => {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered!!");
             }
         }
-
-        // ৩. Private Paid
+        // 3. Private Paid
         else if (!isPublic && !isFree) {
             if (status === JoinStatus.PENDING && paymentStatus === RegistrationPaymentStatus.UNPAID) {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered for this event. Please wait for event owner approval. Then make payment from the join event page. Dashboard -> then click join events.");
@@ -90,34 +115,47 @@ const joinEvent = async (eventId: string, userId: string) => {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered for this event!!");
             }
         }
-
-        // ৪. Public Free
+        // 4. Public Free
         else if (isPublic && isFree) {
             if (status === JoinStatus.APPROVED) {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered!!");
             }
         }
-
         throw new AppError(httpStatus.BAD_REQUEST, "You have already registered for this event.");
+    }
+
+    // Check if user is banned by this host
+    const isBanned = await hostBanService.checkIfBanned(event.ownerId, userId);
+    if (isBanned) {
+        throw new AppError(httpStatus.FORBIDDEN, 'You are not allowed to join events by this Organizer.');
     }
 
     if (event.ownerId === userId) {
         throw new AppError(httpStatus.BAD_REQUEST, "Event owners cannot join their own event");
     }
 
-    const isFree = Number(event.registrationFee) === 0;
-    const isPublic = event.visibility === EventVisibility.PUBLIC;
+    if (isPublic && !isFree) {
+        const stripeSession = await paymentService.createCheckoutSession({
+            eventId: event.id,
+            eventTitle: event.title,
+            userId, // registrationId বাদ দেওয়া হয়েছে, পেমেন্ট হলে ওয়েবহুক ক্রিয়েট করবে
+            amount: Number(event.registrationFee),
+            userEmail: user.email,
+            successUrl: `${process.env.FRONTEND_URL}/dashboard/joined-events?payment=success`,
+            cancelUrl: `${process.env.FRONTEND_URL}/events/${event.id}?status=cancel`,
+        });
+
+        // registration null রিটার্ন করছি কারণ এখনো ক্রিয়েট হয়নি
+        return { registration: null, checkoutUrl: stripeSession.url };
+    }
+
 
     let initialStatus: JoinStatus = JoinStatus.PENDING;
     let initialPaymentStatus: RegistrationPaymentStatus = RegistrationPaymentStatus.UNPAID;
-    let checkoutUrl: string | null = null;
 
     if (isPublic && isFree) {
         initialStatus = JoinStatus.APPROVED;
         initialPaymentStatus = RegistrationPaymentStatus.FREE;
-    } else if (isPublic && !isFree) {
-        initialStatus = JoinStatus.PENDING;
-        initialPaymentStatus = RegistrationPaymentStatus.UNPAID;
     } else if (!isPublic && isFree) {
         initialStatus = JoinStatus.PENDING;
         initialPaymentStatus = RegistrationPaymentStatus.FREE;
@@ -126,35 +164,21 @@ const joinEvent = async (eventId: string, userId: string) => {
         initialPaymentStatus = RegistrationPaymentStatus.UNPAID;
     }
 
-    return await prisma.$transaction(async (tx) => {
-        const registration = await tx.registration.create({
-            data: {
-                eventId,
-                userId,
-                status: initialStatus,
-                paymentStatus: initialPaymentStatus,
-            },
-            include: { user: { select: { email: true, name: true } } }
-        });
-
-        if (isPublic && !isFree) {
-            const stripeSession = await paymentService.createCheckoutSession({
-                eventId: event.id,
-                eventTitle: event.title,
-                registrationId: registration.id,
-                userId,
-                amount: Number(event.registrationFee),
-                userEmail: registration.user.email,
-                successUrl: `${process.env.FRONTEND_URL}/dashboard/joined-events?payment=success`,
-                cancelUrl: `${process.env.FRONTEND_URL}/events/${event.id}?status=cancel`,
-            }, tx);
-
-            checkoutUrl = stripeSession.url;
-        }
-
-        return { registration, checkoutUrl };
+    const registration = await prisma.registration.create({
+        data: {
+            eventId,
+            userId,
+            status: initialStatus,
+            paymentStatus: initialPaymentStatus,
+        },
+        include: { user: { select: { email: true, name: true } } }
     });
+
+    return { registration, checkoutUrl: null };
 };
+
+
+
 
 const payForApprovedPrivateEvent = async (eventId: string, userId: string) => {
     const registration = await prisma.registration.findUnique({
@@ -190,30 +214,22 @@ const inviteUser = async (ownerId: string, payload: { eventId: string; email: st
     // 1. event check
     const event = await findApprovedEvent(eventId);
 
-    if (!event) {
-        throw new AppError(httpStatus.NOT_FOUND, "Event not found");
-    }
-
-    if (event.status !== "APPROVED") {
-        throw new AppError(httpStatus.BAD_REQUEST, "Event is not approved");
-    }
-
     // 2. ownership check
     if (event.ownerId !== ownerId) {
         throw new AppError(httpStatus.FORBIDDEN, "Only owner can invite");
     }
 
     // 3. find user by email
-    const user = await prisma.user.findUnique({
-        where: { email },
-    });
-
-    if (!user) {
-        throw new AppError(httpStatus.NOT_FOUND, "User not found");
-    }
+    const user = await findActiveUser(email);
 
     if (user.id === ownerId) {
         throw new AppError(httpStatus.BAD_REQUEST, "You cannot invite yourself");
+    }
+
+    // Check if user is banned by this host
+    const isBanned = await hostBanService.checkIfBanned(ownerId, user.id);
+    if (isBanned) {
+        throw new AppError(httpStatus.FORBIDDEN, 'This user is banned from your events');
     }
 
     // Conditional payment status logic based on fee (0 means free)
@@ -400,6 +416,10 @@ const updateParticipantStatus = async (
         throw new AppError(httpStatus.FORBIDDEN, "Access denied. Only event host can update status");
     }
 
+    if (status === "APPROVED") {
+        await findActiveUser(registration.userId);
+    }
+
 
     const updatedRegistration = await prisma.registration.update({
         where: { id: registrationId },
@@ -419,7 +439,7 @@ const updateParticipantStatus = async (
 };
 
 
-export const getJoinedEventsForUser = async (
+const getJoinedEventsForUser = async (
     userId: string,
     filter: 'ALL EVENTS' | 'UPCOMING' | 'PAST' = 'ALL EVENTS'
 ) => {
@@ -465,6 +485,24 @@ export const getJoinedEventsForUser = async (
     return joinedRegistrations;
 };
 
+const deleteRegistration = async (ownerId: string, registrationId: string) => {
+    const registration = await prisma.registration.findUnique({
+        where: { id: registrationId },
+        include: { event: true },
+    });
+
+    if (!registration) {
+        throw new AppError(httpStatus.NOT_FOUND, 'Registration not found');
+    }
+
+    if (registration.event.ownerId !== ownerId) {
+        throw new AppError(httpStatus.FORBIDDEN, 'Only event owner can delete registrations');
+    }
+
+    await prisma.registration.delete({ where: { id: registrationId } });
+    return { message: 'Registration deleted successfully' };
+};
+
 
 
 export const registrationService = {
@@ -476,4 +514,5 @@ export const registrationService = {
     getEventParticipants,
     updateParticipantStatus,
     getJoinedEventsForUser,
+    deleteRegistration
 };

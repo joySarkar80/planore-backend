@@ -6,6 +6,8 @@ import validateRequest from "../../middlewares/validateRequest";
 
 const router = express.Router();
 
+
+// Static route start..
 // joined events..
 router.get(
     '/my-joined-events',
@@ -42,6 +44,7 @@ router.post(
     registrationController.inviteUserHandler
 );
 
+// Dynamic route start..
 // click join button for join events..
 router.post(
     "/join/:eventId",
@@ -59,6 +62,12 @@ router.patch(
     "/participants/:id/status",
     auth(USER_ROLE.user, USER_ROLE.admin),
     registrationController.updateParticipantStatusHandler
+);
+
+router.delete(
+    '/:registrationId',
+    auth(USER_ROLE.user, USER_ROLE.admin),
+    registrationController.deleteRegistrationHandler
 );
 
 export const registrationRoutes = router;
