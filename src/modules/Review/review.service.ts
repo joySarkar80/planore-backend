@@ -2,8 +2,18 @@ import httpStatus from 'http-status';
 import { TReview } from './review.interface';
 import { prisma } from '../../lib/prisma';
 import AppError from '../../errors/AppError';
+import { registrationService } from '../Registration/registration.service';
 
 const createReview = async (userId: string, payload: TReview) => {
+    // owner user status banned or not..
+    const user = await registrationService.findActiveUser(userId);
+
+    if (user.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned. You cannot create review."
+        );
+    }
 
     const registration = await prisma
         .registration.findUnique({
@@ -93,11 +103,22 @@ const getAllEventReviews = async (eventId: string) => {
         },
         orderBy: { createdAt: 'desc' },
     });
- 
+
     return reviews;
 };
 
 const updateReview = async (userId: string, reviewId: string, payload: { rating?: number; comment?: string }) => {
+
+    // owner user status banned or not..
+    const user = await registrationService.findActiveUser(userId);
+
+    if (user.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned. You cannot update review."
+        );
+    }
+
     const review = await prisma.review.findUnique({
         where: { id: reviewId }
     });
@@ -122,6 +143,17 @@ const updateReview = async (userId: string, reviewId: string, payload: { rating?
 };
 
 const deleteReview = async (userId: string, reviewId: string) => {
+
+    // owner user status banned or not..
+    const user = await registrationService.findActiveUser(userId);
+
+    if (user.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned. You cannot delete review."
+        );
+    }
+
     const review = await prisma.review.findUnique({
         where: { id: reviewId }
     });

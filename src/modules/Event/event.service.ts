@@ -12,6 +12,7 @@ import {
 import { EventStatus, EventVisibility, Prisma, RegistrationPaymentStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { JoinStatus } from "../../../generated/prisma/enums";
+import { registrationService } from "../Registration/registration.service";
 
 // get all events for events page and slider..
 const getAllEvents = async (filters: IEventFilters) => {
@@ -248,6 +249,16 @@ const getEventById = async (id: string) => {
 const createEvent = async (ownerId: string, payload: ICreateEvent) => {
     const startAtDate = new Date(payload.startAt);
 
+    // owner user status banned or not..
+    const user = await registrationService.findActiveUser(ownerId);
+    
+    if (user.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned. You cannot create this event."
+        );
+    }
+
     // Validate past date
     if (startAtDate < new Date()) {
         throw new AppError(
@@ -291,6 +302,16 @@ const updateEvent = async (
         throw new AppError(httpStatus.NOT_FOUND, "Event not found");
     }
 
+    // owner user status banned or not..
+    const user = await registrationService.findActiveUser(requesterId);
+    
+    if (user.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned. You cannot update this event."
+        );
+    }
+
     if (event.ownerId !== requesterId) {
         throw new AppError(
             httpStatus.FORBIDDEN,
@@ -318,6 +339,17 @@ const deleteEvent = async (eventId: string, requesterId: string) => {
 
     if (!event) {
         throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+    }
+
+        // owner user status banned or not..
+    const user = await registrationService.findActiveUser(requesterId);
+    
+    if (user.status === "BANNED") {
+        // console.log("clicked");
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned. You cannot delete this event."
+        );
     }
 
     if (event.ownerId !== requesterId) {

@@ -7,8 +7,6 @@ import { paymentService } from "../Payment/payment.service";
 import { hostBanService } from "../HostBan/hostBan.service";
 
 
-
-
 // Fetch event and throw 404 if missing or not approved
 const findApprovedEvent = async (eventId: string) => {
     const event = await prisma.event.findUnique({ where: { id: eventId } });
@@ -33,11 +31,7 @@ const findActiveUser = async (identifier: string) => {
     });
 
     if (!user) {
-        throw new AppError(httpStatus.NOT_FOUND, "User not found");
-    }
-
-    if (user.status === "BANNED") {
-        throw new AppError(httpStatus.BAD_REQUEST, "User is BANNED by admin!23");
+        throw new AppError(httpStatus.NOT_FOUND, "User not found.");
     }
 
     return user;
@@ -58,7 +52,15 @@ const assertNotAlreadyRegistered = async (eventId: string, userId: string) => {
 const joinEvent = async (eventId: string, userId: string) => {
     const event = await findApprovedEvent(eventId);
 
+    // owner user status banned or not..
     const user = await findActiveUser(userId);
+
+    if (user.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned by admin. You cannot join this event."
+        );
+    }
 
     const existingRegistration = await prisma.registration.findUnique({
         where: {
@@ -127,7 +129,7 @@ const joinEvent = async (eventId: string, userId: string) => {
     // Check if user is banned by this host
     const isBanned = await hostBanService.checkIfBanned(event.ownerId, userId);
     if (isBanned) {
-        throw new AppError(httpStatus.FORBIDDEN, 'You are not allowed to join events by this Organizer.');
+        throw new AppError(httpStatus.FORBIDDEN, 'You are not allowed to join this event. Your account block by Organizer.');
     }
 
     if (event.ownerId === userId) {
@@ -178,13 +180,21 @@ const joinEvent = async (eventId: string, userId: string) => {
 };
 
 
-
-
 const payForApprovedPrivateEvent = async (eventId: string, userId: string) => {
     const registration = await prisma.registration.findUnique({
         where: { eventId_userId: { eventId, userId } },
         include: { event: true, user: { select: { email: true } } }
     });
+
+    // owner user status banned or not..
+    const user = await findActiveUser(userId);
+
+    if (user.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned by admin. You cannot pay."
+        );
+    }
 
     if (!registration) throw new AppError(httpStatus.NOT_FOUND, "Registration record not found");
     if (registration.status !== JoinStatus.APPROVED) {
@@ -208,11 +218,30 @@ const payForApprovedPrivateEvent = async (eventId: string, userId: string) => {
     return { checkoutUrl: stripeSession.url };
 };
 
+
 const inviteUser = async (ownerId: string, payload: { eventId: string; email: string }) => {
     const { eventId, email } = payload;
 
+    // owner user status banned or not..
+    const isBannedOwner = await findActiveUser(ownerId);
+
+    if (isBannedOwner.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned by admin. You cannot invite user."
+        );
+    }
+
     // 1. event check
     const event = await findApprovedEvent(eventId);
+
+    // only future event can invite users
+    if (new Date(event.startAt) <= new Date()) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "You can only invite users to future events."
+        );
+    }
 
     // 2. ownership check
     if (event.ownerId !== ownerId) {
@@ -244,7 +273,7 @@ const inviteUser = async (ownerId: string, payload: { eventId: string; email: st
                 eventId,
                 userId: user.id,
                 status: JoinStatus.INVITED,
-                paymentStatus: paymentStatus, // Applied conditional logic here
+                paymentStatus: paymentStatus,
                 invitedById: ownerId,
             },
             include: {
@@ -402,6 +431,15 @@ const updateParticipantStatus = async (
     registrationId: string,
     status: JoinStatus
 ) => {
+    // owner user status banned or not..
+    const isBannedOwner = await findActiveUser(ownerId);
+
+    if (isBannedOwner.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned by admin. You cannot update join status."
+        );
+    }
 
     const registration = await prisma.registration.findUnique({
         where: { id: registrationId },
@@ -486,6 +524,15 @@ const getJoinedEventsForUser = async (
 };
 
 const deleteRegistration = async (ownerId: string, registrationId: string) => {
+    // owner user status banned or not..
+    const isBannedOwner = await findActiveUser(ownerId);
+
+    if (isBannedOwner.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned by admin. You cannot delete registration."
+        );
+    }
     const registration = await prisma.registration.findUnique({
         where: { id: registrationId },
         include: { event: true },
@@ -514,5 +561,6 @@ export const registrationService = {
     getEventParticipants,
     updateParticipantStatus,
     getJoinedEventsForUser,
-    deleteRegistration
+    deleteRegistration,
+    findActiveUser
 };

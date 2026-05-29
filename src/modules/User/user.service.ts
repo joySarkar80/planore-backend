@@ -5,6 +5,7 @@ import bcryptJs from 'bcryptjs';
 import { Prisma, UserStatus } from '@prisma/client';
 import AppError from '../../errors/AppError';
 import { USER_ROLE } from '../../middlewares/auth';
+import { registrationService } from '../Registration/registration.service';
 
 export type TUserPayload = {
     name: string;
@@ -89,6 +90,17 @@ const findUserById = async (userId: string, currentUser: any) => {
 
 // update users profile
 const updateUserById = async (userId: string, payload: Partial<TUserPayload>) => {
+
+    // owner user status banned or not..
+    const user = await registrationService.findActiveUser(userId);
+
+    if (user.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned. You cannot edit profile."
+        );
+    }
+
     const result = await prisma.user.update({
         where: { id: userId },
         data: {
@@ -104,7 +116,7 @@ const updateUserById = async (userId: string, payload: Partial<TUserPayload>) =>
     return result;
 };
 
-// update user status, active or banned 
+// update user status, active or banned for admin..
 const updateUserStatus = async (userId: string, status: UserStatus) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
@@ -116,6 +128,7 @@ const updateUserStatus = async (userId: string, status: UserStatus) => {
     });
 };
 
+// for admin
 const deleteUserById = async (userId: string) => {
     const result = await prisma.user.delete({
         where: { id: userId },
@@ -136,7 +149,7 @@ const getMyProfile = async (userId: string) => {
             id: true,
             name: true,
             email: true,
-            status:true,
+            status: true,
             avatar: true,
             role: true,
             createdAt: true,
