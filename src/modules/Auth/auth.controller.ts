@@ -21,17 +21,38 @@ const loginUser = catchAsync(async (req, res) => {
     const { refreshToken, accessToken } = result;
 
 
+    // for local dev..
+    // res.cookie("accessToken", accessToken, {
+    //     httpOnly: true,
+    //     secure: false,
+    //     sameSite: "lax",
+    // });
+
+    // res.cookie("refreshToken", refreshToken, {
+    //     httpOnly: true,
+    //     secure: false,
+    //     sameSite: "lax",
+    // });
+
+    // for production..
     res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        sameSite:
+            process.env.NODE_ENV === "production"
+                ? "none"
+                : "lax",
     });
 
     res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        sameSite:
+            process.env.NODE_ENV === "production"
+                ? "none"
+                : "lax",
     });
+
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,

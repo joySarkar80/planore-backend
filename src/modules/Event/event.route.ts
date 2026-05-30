@@ -63,7 +63,7 @@ router.patch(
 // DELETE /events/:id — delete own event
 router.delete(
     "/:id",
-    auth(USER_ROLE.user),
+    auth(USER_ROLE.user, USER_ROLE.admin),
     eventController.deleteEventHandler
 );
 

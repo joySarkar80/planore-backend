@@ -24,7 +24,9 @@ async function main() {
   }
 }
 
-main();
+
+  main();
+
 
 // Graceful shutdown handlers
 process.on('unhandledRejection', async (err) => {
