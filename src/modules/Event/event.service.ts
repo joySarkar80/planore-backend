@@ -302,7 +302,13 @@ const updateEvent = async (
         throw new AppError(httpStatus.NOT_FOUND, "Event not found");
     }
 
-    // owner user status banned or not..
+    if (event.ownerId !== requesterId) {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "You are not authorized to update this event"
+        );
+    }
+
     const user = await registrationService.findActiveUser(requesterId);
     
     if (user.status === "BANNED") {
@@ -312,11 +318,16 @@ const updateEvent = async (
         );
     }
 
-    if (event.ownerId !== requesterId) {
-        throw new AppError(
-            httpStatus.FORBIDDEN,
-            "You are not authorized to update this event"
-        );
+    if (payload.startAt) {
+        const startAtDate = new Date(payload.startAt);
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+        if (startAtDate < fiveMinutesAgo) {
+            throw new AppError(
+                httpStatus.BAD_REQUEST,
+                "Event date/time cannot be in the past!!"
+            );
+        }
     }
 
     const updated = await prisma.event.update({
@@ -333,23 +344,13 @@ const updateEvent = async (
     return updated;
 };
 
+
 // Delete an event — only the owner can delete..
 const deleteEvent = async (eventId: string, requesterId: string) => {
     const event = await prisma.event.findUnique({ where: { id: eventId } });
 
     if (!event) {
         throw new AppError(httpStatus.NOT_FOUND, "Event not found");
-    }
-
-        // owner user status banned or not..
-    const user = await registrationService.findActiveUser(requesterId);
-    
-    if (user.status === "BANNED") {
-        // console.log("clicked");
-        throw new AppError(
-            httpStatus.FORBIDDEN,
-            "Your account is banned. You cannot delete this event."
-        );
     }
 
     if (event.ownerId !== requesterId) {
@@ -359,10 +360,20 @@ const deleteEvent = async (eventId: string, requesterId: string) => {
         );
     }
 
+    const user = await registrationService.findActiveUser(requesterId);
+    
+    if (user.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned. You cannot delete this event."
+        );
+    }
+
     await prisma.event.delete({ where: { id: eventId } });
 
     return { message: "Event deleted successfully" };
 };
+
 
 // get recent events for users dashboard,,
 const getRecentEvents = async (userId: string) => {

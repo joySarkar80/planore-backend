@@ -3,9 +3,9 @@ import { TReview } from './review.interface';
 import { prisma } from '../../lib/prisma';
 import AppError from '../../errors/AppError';
 import { registrationService } from '../Registration/registration.service';
+import { hostBanService } from '../HostBan/hostBan.service';
 
 const createReview = async (userId: string, payload: TReview) => {
-    // owner user status banned or not..
     const user = await registrationService.findActiveUser(userId);
 
     if (user.status === "BANNED") {
@@ -15,20 +15,38 @@ const createReview = async (userId: string, payload: TReview) => {
         );
     }
 
-    const registration = await prisma
-        .registration.findUnique({
-            where: {
-                eventId_userId: {
-                    eventId: payload.eventId,
-                    userId: userId,
-                },
-            },
-        });
+    const event = await prisma.event.findUnique({
+        where: { id: payload.eventId },
+        select: { ownerId: true }
+    });
 
-    if (!registration || registration.status !== 'APPROVED') {
-        throw new AppError(httpStatus.BAD_REQUEST, 'You are not eligible to review this event. You must have approved join status for the event to leave a review.');
+    if (!event) {
+        throw new AppError(httpStatus.NOT_FOUND, 'Event not found.');
     }
 
+    const isBannedByHost = await hostBanService.checkIfBanned(event.ownerId, userId);
+    if (isBannedByHost) {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "You cannot create a review for this event. Your account is blocked by the Organizer."
+        );
+    }
+
+    const registration = await prisma.registration.findUnique({
+        where: {
+            eventId_userId: {
+                eventId: payload.eventId,
+                userId: userId,
+            },
+        },
+    });
+
+    if (!registration || registration.status !== 'APPROVED') {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            'You are not eligible to review this event. You must have approved join status for the event to leave a review.'
+        );
+    }
 
     const existingReview = await prisma.review.findUnique({
         where: {
@@ -43,7 +61,6 @@ const createReview = async (userId: string, payload: TReview) => {
         throw new AppError(httpStatus.BAD_REQUEST, 'You have already reviewed this event.');
     }
 
-
     const newReview = await prisma.review.create({
         data: {
             eventId: payload.eventId,
@@ -55,6 +72,9 @@ const createReview = async (userId: string, payload: TReview) => {
 
     return newReview;
 };
+
+
+
 
 const getMyReviews = async (userId: string) => {
     const reviews = await prisma.review.findMany({
@@ -109,9 +129,7 @@ const getAllEventReviews = async (eventId: string) => {
 
 const updateReview = async (userId: string, reviewId: string, payload: { rating?: number; comment?: string }) => {
 
-    // owner user status banned or not..
     const user = await registrationService.findActiveUser(userId);
-
     if (user.status === "BANNED") {
         throw new AppError(
             httpStatus.FORBIDDEN,
@@ -131,6 +149,23 @@ const updateReview = async (userId: string, reviewId: string, payload: { rating?
         throw new AppError(httpStatus.FORBIDDEN, 'You are not authorized to update this review');
     }
 
+    const event = await prisma.event.findUnique({
+        where: { id: review.eventId },
+        select: { ownerId: true }
+    });
+
+    const ownerId = event?.ownerId;
+
+    if (ownerId) {
+        const isBannedByHost = await hostBanService.checkIfBanned(ownerId, userId);
+        if (isBannedByHost) {
+            throw new AppError(
+                httpStatus.FORBIDDEN,
+                "You cannot update review for this event. Your account is blocked by the Organizer."
+            );
+        }
+    }
+
     const updatedReview = await prisma.review.update({
         where: { id: reviewId },
         data: payload,
@@ -142,9 +177,9 @@ const updateReview = async (userId: string, reviewId: string, payload: { rating?
     return updatedReview;
 };
 
+
 const deleteReview = async (userId: string, reviewId: string) => {
 
-    // owner user status banned or not..
     const user = await registrationService.findActiveUser(userId);
 
     if (user.status === "BANNED") {
@@ -166,12 +201,30 @@ const deleteReview = async (userId: string, reviewId: string) => {
         throw new AppError(httpStatus.FORBIDDEN, 'You are not authorized to delete this review');
     }
 
+    const event = await prisma.event.findUnique({
+        where: { id: review.eventId },
+        select: { ownerId: true }
+    });
+
+    const ownerId = event?.ownerId;
+
+    if (ownerId) {
+        const isBannedByHost = await hostBanService.checkIfBanned(ownerId, userId);
+        if (isBannedByHost) {
+            throw new AppError(
+                httpStatus.FORBIDDEN,
+                "You cannot delete review for this event. Your account is blocked by the Organizer."
+            );
+        }
+    }
+
     const deletedReview = await prisma.review.delete({
         where: { id: reviewId }
     });
 
     return deletedReview;
 };
+
 
 export const ReviewService = {
     createReview,

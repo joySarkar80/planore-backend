@@ -37,7 +37,6 @@ const findActiveUser = async (identifier: string) => {
     return user;
 };
 
-
 // Throw 409 if user already has a registration row for this event 
 const assertNotAlreadyRegistered = async (eventId: string, userId: string) => {
     const existing = await prisma.registration.findUnique({
@@ -51,8 +50,6 @@ const assertNotAlreadyRegistered = async (eventId: string, userId: string) => {
 
 const joinEvent = async (eventId: string, userId: string) => {
     const event = await findApprovedEvent(eventId);
-
-    // owner user status banned or not..
     const user = await findActiveUser(userId);
 
     if (user.status === "BANNED") {
@@ -60,6 +57,15 @@ const joinEvent = async (eventId: string, userId: string) => {
             httpStatus.FORBIDDEN,
             "Your account is banned by admin. You cannot join this event."
         );
+    }
+
+    if (event.ownerId === userId) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Event owners cannot join their own event");
+    }
+
+    const isBanned = await hostBanService.checkIfBanned(event.ownerId, userId);
+    if (isBanned) {
+        throw new AppError(httpStatus.FORBIDDEN, 'You are not allowed to join this event. Your account block by Organizer.');
     }
 
     const existingRegistration = await prisma.registration.findUnique({
@@ -96,7 +102,7 @@ const joinEvent = async (eventId: string, userId: string) => {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered!!");
             }
         }
-        // 2. Private Free
+        // Private Free
         else if (!isPublic && isFree) {
             if (status === JoinStatus.PENDING) {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered please wait for owner approval.");
@@ -105,7 +111,7 @@ const joinEvent = async (eventId: string, userId: string) => {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered!!");
             }
         }
-        // 3. Private Paid
+        // Private Paid
         else if (!isPublic && !isFree) {
             if (status === JoinStatus.PENDING && paymentStatus === RegistrationPaymentStatus.UNPAID) {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered for this event. Please wait for event owner approval. Then make payment from the join event page. Dashboard -> then click join events.");
@@ -117,7 +123,7 @@ const joinEvent = async (eventId: string, userId: string) => {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered for this event!!");
             }
         }
-        // 4. Public Free
+        // Public Free
         else if (isPublic && isFree) {
             if (status === JoinStatus.APPROVED) {
                 throw new AppError(httpStatus.BAD_REQUEST, "You have already registered!!");
@@ -126,31 +132,19 @@ const joinEvent = async (eventId: string, userId: string) => {
         throw new AppError(httpStatus.BAD_REQUEST, "You have already registered for this event.");
     }
 
-    // Check if user is banned by this host
-    const isBanned = await hostBanService.checkIfBanned(event.ownerId, userId);
-    if (isBanned) {
-        throw new AppError(httpStatus.FORBIDDEN, 'You are not allowed to join this event. Your account block by Organizer.');
-    }
-
-    if (event.ownerId === userId) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Event owners cannot join their own event");
-    }
-
     if (isPublic && !isFree) {
         const stripeSession = await paymentService.createCheckoutSession({
             eventId: event.id,
             eventTitle: event.title,
-            userId, // registrationId বাদ দেওয়া হয়েছে, পেমেন্ট হলে ওয়েবহুক ক্রিয়েট করবে
+            userId,
             amount: Number(event.registrationFee),
             userEmail: user.email,
             successUrl: `${process.env.FRONTEND_URL}/dashboard/joined-events?payment=success`,
             cancelUrl: `${process.env.FRONTEND_URL}/events/${event.id}?status=cancel`,
         });
 
-        // registration null রিটার্ন করছি কারণ এখনো ক্রিয়েট হয়নি
         return { registration: null, checkoutUrl: stripeSession.url };
     }
-
 
     let initialStatus: JoinStatus = JoinStatus.PENDING;
     let initialPaymentStatus: RegistrationPaymentStatus = RegistrationPaymentStatus.UNPAID;
@@ -186,9 +180,11 @@ const payForApprovedPrivateEvent = async (eventId: string, userId: string) => {
         include: { event: true, user: { select: { email: true } } }
     });
 
-    // owner user status banned or not..
-    const user = await findActiveUser(userId);
+    if (!registration) {
+        throw new AppError(httpStatus.NOT_FOUND, "Registration record not found");
+    }
 
+    const user = await findActiveUser(userId);
     if (user.status === "BANNED") {
         throw new AppError(
             httpStatus.FORBIDDEN,
@@ -196,7 +192,14 @@ const payForApprovedPrivateEvent = async (eventId: string, userId: string) => {
         );
     }
 
-    if (!registration) throw new AppError(httpStatus.NOT_FOUND, "Registration record not found");
+    const isBanned = await hostBanService.checkIfBanned(registration.event.ownerId, userId);
+    if (isBanned) {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            'You are not allowed to pay this event. Your account block by Organizer.'
+        );
+    }
+
     if (registration.status !== JoinStatus.APPROVED) {
         throw new AppError(httpStatus.BAD_REQUEST, "You cannot pay for this event until it is approved by the event owner");
     }
@@ -224,7 +227,6 @@ const inviteUser = async (ownerId: string, payload: { eventId: string; email: st
 
     // owner user status banned or not..
     const isBannedOwner = await findActiveUser(ownerId);
-
     if (isBannedOwner.status === "BANNED") {
         throw new AppError(
             httpStatus.FORBIDDEN,
@@ -232,8 +234,18 @@ const inviteUser = async (ownerId: string, payload: { eventId: string; email: st
         );
     }
 
-    // 1. event check
+    // find user by email
+    const user = await findActiveUser(email);
+    if (user.id === ownerId) {
+        throw new AppError(httpStatus.BAD_REQUEST, "You cannot invite yourself");
+    }
+
+    // event check
     const event = await findApprovedEvent(eventId);
+    // ownership check
+    if (event.ownerId !== ownerId) {
+        throw new AppError(httpStatus.FORBIDDEN, "Only owner can invite");
+    }
 
     // only future event can invite users
     if (new Date(event.startAt) <= new Date()) {
@@ -241,18 +253,6 @@ const inviteUser = async (ownerId: string, payload: { eventId: string; email: st
             httpStatus.BAD_REQUEST,
             "You can only invite users to future events."
         );
-    }
-
-    // 2. ownership check
-    if (event.ownerId !== ownerId) {
-        throw new AppError(httpStatus.FORBIDDEN, "Only owner can invite");
-    }
-
-    // 3. find user by email
-    const user = await findActiveUser(email);
-
-    if (user.id === ownerId) {
-        throw new AppError(httpStatus.BAD_REQUEST, "You cannot invite yourself");
     }
 
     // Check if user is banned by this host
@@ -476,7 +476,6 @@ const updateParticipantStatus = async (
     return updatedRegistration;
 };
 
-
 const getJoinedEventsForUser = async (
     userId: string,
     filter: 'ALL EVENTS' | 'UPCOMING' | 'PAST' = 'ALL EVENTS'
@@ -549,8 +548,6 @@ const deleteRegistration = async (ownerId: string, registrationId: string) => {
     await prisma.registration.delete({ where: { id: registrationId } });
     return { message: 'Registration deleted successfully' };
 };
-
-
 
 export const registrationService = {
     joinEvent,

@@ -2,6 +2,8 @@ import Stripe from 'stripe';
 import { prisma } from '../../lib/prisma';
 import AppError from '../../errors/AppError';
 import httpStatus from 'http-status';
+import { hostBanService } from '../HostBan/hostBan.service';
+import { registrationService } from '../Registration/registration.service';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
     apiVersion: '2024-12-18.acacia' as any,
@@ -14,7 +16,7 @@ const createCheckoutSession = async (
     payload: {
         eventId: string;
         eventTitle: string;
-        registrationId?: string; // <-- এটিকে optional (?) করে দাও
+        registrationId?: string;
         userId: string;
         amount: number;
         userEmail: string;
@@ -24,6 +26,30 @@ const createCheckoutSession = async (
     clientTx?: any
 ) => {
     const db = clientTx || prisma;
+
+    const event = await db.event.findUnique({
+        where: { id: payload.eventId }
+    });
+    if (!event) {
+        throw new AppError(httpStatus.NOT_FOUND, "Event not found.");
+    }
+
+    const user = await registrationService.findActiveUser(payload.userId);
+    if (user.status === "BANNED") {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is banned by admin. You cannot make payment."
+        );
+    }
+
+    const isBannedByHost = await hostBanService.checkIfBanned(event.ownerId, payload.userId);
+    if (isBannedByHost) {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "You cannot pay for this event. Your account is blocked by the Organizer."
+        );
+    }
+
     const amountInCents = Math.round(payload.amount * 100);
 
     if (payload.amount > 0 && payload.amount < 0.50) {
@@ -39,7 +65,7 @@ const createCheckoutSession = async (
         success_url: successUrl,
         cancel_url: cancelUrl,
         customer_email: payload.userEmail,
-        
+
         client_reference_id: payload.registrationId || undefined,
         line_items: [
             {
@@ -54,7 +80,7 @@ const createCheckoutSession = async (
         metadata: {
             eventId: payload.eventId,
             userId: payload.userId,
-            ...(payload.registrationId && { registrationId: payload.registrationId }), 
+            ...(payload.registrationId && { registrationId: payload.registrationId }),
         },
     });
 
@@ -62,7 +88,7 @@ const createCheckoutSession = async (
         data: {
             userId: payload.userId,
             eventId: payload.eventId,
-            registrationId: payload.registrationId || null, 
+            registrationId: payload.registrationId || null,
             amount: payload.amount,
             provider: 'STRIPE',
             transactionId: session.id,
@@ -72,6 +98,7 @@ const createCheckoutSession = async (
 
     return session;
 };
+
 
 const handleWebhook = async (rawBody: Buffer, signature: string) => {
     let event: any;
